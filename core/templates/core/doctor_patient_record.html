@@ -1,0 +1,121 @@
+{% extends 'core/base.html' %}
+{% block title %}Patient Record{% endblock %}
+{% block role_label %}Doctor Portal{% endblock %}
+
+{% block nav %}
+<span class="nav-label">Menu</span>
+<a href="{% url 'doctor_dashboard' %}" class="nav-link">
+    <span class="icon">⊞</span> Dashboard
+</a>
+<a href="{% url 'doctor_schedule' %}" class="nav-link">
+    <span class="icon">📅</span> Schedule
+</a>
+<a href="{% url 'doctor_availability' %}" class="nav-link">
+    <span class="icon">🕐</span> Availability
+</a>
+<a href="{% url 'doctor_prescriptions' %}" class="nav-link">
+    <span class="icon">💊</span> Prescriptions
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Patient Record</h1>
+</div>
+
+{% if patient %}
+<div class="card">
+    <div class="card-title">Patient Information</div>
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+        <div>
+            <div style="font-size:12px;color:var(--muted);">NAME</div>
+            <div>{{ patient.0 }} {{ patient.1 }}</div>
+        </div>
+        <div>
+            <div style="font-size:12px;color:var(--muted);">DATE OF BIRTH</div>
+            <div>{{ patient.2 }}</div>
+        </div>
+        <div>
+            <div style="font-size:12px;color:var(--muted);">GENDER</div>
+            <div>{{ patient.3 }}</div>
+        </div>
+        <div>
+            <div style="font-size:12px;color:var(--muted);">ADDRESS</div>
+            <div>{{ patient.4|default:"—" }}</div>
+        </div>
+        <div>
+            <div style="font-size:12px;color:var(--muted);">EMERGENCY CONTACT</div>
+            <div>{{ patient.5|default:"—" }}</div>
+        </div>
+        <div>
+            <div style="font-size:12px;color:var(--muted);">EMERGENCY PHONE</div>
+            <div>{{ patient.6|default:"—" }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-title">Record Visit</div>
+    {% if pending_appointments %}
+    <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="record_visit">
+        <div class="form-group">
+            <label>Appointment</label>
+            <select name="appointment_id" required>
+                <option value="">Select appointment</option>
+                {% for a in pending_appointments %}
+                <option value="{{ a.0 }}">{{ a.1 }} at {{ a.2 }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Diagnosis</label>
+            <input type="text" name="diagnosis" placeholder="e.g. Mild cold">
+        </div>
+        <div class="form-group">
+            <label>Vitals</label>
+            <input type="text" name="vitals" placeholder="e.g. BP 120/80, Temp 37C">
+        </div>
+        <div class="form-group">
+            <label>Notes</label>
+            <textarea name="notes" rows="3" placeholder="Additional notes..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-success">Save Visit</button>
+    </form>
+    {% else %}
+    <div class="empty">No scheduled appointments for this patient.</div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-title">Visit History</div>
+    {% if visits %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Diagnosis</th>
+                    <th>Vitals</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in visits %}
+                <tr>
+                    <td>{{ v.0 }}</td>
+                    <td>{{ v.1|default:"—" }}</td>
+                    <td>{{ v.2|default:"—" }}</td>
+                    <td>{{ v.3|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">No visit history.</div>
+    {% endif %}
+</div>
+{% endblock %}

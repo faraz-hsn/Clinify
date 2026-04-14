@@ -1,0 +1,79 @@
+{% extends 'core/base.html' %}
+{% block title %}Appointments{% endblock %}
+{% block role_label %}Admin Panel{% endblock %}
+
+{% block nav %}
+<span class="nav-label">Menu</span>
+<a href="{% url 'admin_dashboard' %}" class="nav-link">
+    <span class="icon">⊞</span> Dashboard
+</a>
+<a href="{% url 'admin_appointments' %}" class="nav-link active">
+    <span class="icon">📅</span> Appointments
+</a>
+<a href="{% url 'admin_users' %}" class="nav-link">
+    <span class="icon">👥</span> Users
+</a>
+<a href="{% url 'admin_medications' %}" class="nav-link">
+    <span class="icon">💊</span> Medications
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Appointments</h1>
+    <p>Manage all clinic appointments.</p>
+</div>
+
+<div class="card">
+    {% if appointments %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Patient</th>
+                    <th>Doctor</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in appointments %}
+                <tr>
+                    <td>{{ a.1 }}</td>
+                    <td>{{ a.2 }}</td>
+                    <td>{{ a.4 }}</td>
+                    <td>Dr. {{ a.5 }}</td>
+                    <td>{{ a.6 }}</td>
+                    <td><span class="badge badge-{{ a.3|lower }}">{{ a.3 }}</span></td>
+                    <td style="display:flex; gap:6px;">
+                        {% if a.3 == 'Scheduled' %}
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="appointment_id" value="{{ a.0 }}">
+                            <button type="submit" name="action" value="cancel" class="btn btn-danger btn-sm">Cancel</button>
+                        </form>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="appointment_id" value="{{ a.0 }}">
+                            <input type="hidden" name="action" value="update_status">
+                            <select name="status" onchange="this.form.submit()" style="padding:5px 8px; border-radius:6px; border:1px solid var(--border); font-size:13px;">
+                                <option value="">Update</option>
+                                <option value="Completed">Completed</option>
+                                <option value="No-Show">No-Show</option>
+                            </select>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">No appointments found.</div>
+    {% endif %}
+</div>
+{% endblock %}

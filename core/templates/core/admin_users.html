@@ -1,0 +1,123 @@
+{% extends 'core/base.html' %}
+{% block title %}Users{% endblock %}
+{% block role_label %}Admin Panel{% endblock %}
+
+{% block nav %}
+<span class="nav-label">Menu</span>
+<a href="{% url 'admin_dashboard' %}" class="nav-link">
+    <span class="icon">⊞</span> Dashboard
+</a>
+<a href="{% url 'admin_appointments' %}" class="nav-link">
+    <span class="icon">📅</span> Appointments
+</a>
+<a href="{% url 'admin_users' %}" class="nav-link active">
+    <span class="icon">👥</span> Users
+</a>
+<a href="{% url 'admin_medications' %}" class="nav-link">
+    <span class="icon">💊</span> Medications
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>User Accounts</h1>
+    <p>View, edit, or remove system users.</p>
+</div>
+
+<div class="card">
+    {% if users %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u.1 }} {{ u.2 }}</td>
+                    <td>{{ u.3 }}</td>
+                    <td>{{ u.4|default:"—" }}</td>
+                    <td><span class="badge badge-{{ u.5 }}">{{ u.5|capfirst }}</span></td>
+                    <td style="display:flex; gap:6px;">
+                        <button class="btn btn-outline btn-sm"
+                            onclick="openEdit('{{ u.0 }}','{{ u.1 }}','{{ u.2 }}','{{ u.4 }}','{{ u.5 }}')">
+                            Edit
+                        </button>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="user_id" value="{{ u.0 }}">
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                onclick="return confirm('Delete this user?')">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">No users found.</div>
+    {% endif %}
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-backdrop" id="edit-modal">
+    <div class="modal">
+        <h3>Edit User</h3>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="user_id" id="edit-user-id">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>First Name</label>
+                    <input type="text" name="first_name" id="edit-first">
+                </div>
+                <div class="form-group">
+                    <label>Last Name</label>
+                    <input type="text" name="last_name" id="edit-last">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" name="phone" id="edit-phone">
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select name="role" id="edit-role">
+                    <option value="patient">Patient</option>
+                    <option value="doctor">Doctor</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" onclick="closeEdit()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEdit(id, first, last, phone, role) {
+    document.getElementById('edit-user-id').value = id;
+    document.getElementById('edit-first').value   = first;
+    document.getElementById('edit-last').value    = last;
+    document.getElementById('edit-phone').value   = phone === 'None' ? '' : phone;
+    document.getElementById('edit-role').value    = role;
+    document.getElementById('edit-modal').classList.add('open');
+}
+function closeEdit() {
+    document.getElementById('edit-modal').classList.remove('open');
+}
+</script>
+{% endblock %}

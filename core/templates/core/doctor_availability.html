@@ -1,0 +1,96 @@
+{% extends 'core/base.html' %}
+{% block title %}Availability{% endblock %}
+{% block role_label %}Doctor Portal{% endblock %}
+
+{% block nav %}
+<span class="nav-label">Menu</span>
+<a href="{% url 'doctor_dashboard' %}" class="nav-link">
+    <span class="icon">⊞</span> Dashboard
+</a>
+<a href="{% url 'doctor_schedule' %}" class="nav-link">
+    <span class="icon">📅</span> Schedule
+</a>
+<a href="{% url 'doctor_availability' %}" class="nav-link active">
+    <span class="icon">🕐</span> Availability
+</a>
+<a href="{% url 'doctor_prescriptions' %}" class="nav-link">
+    <span class="icon">💊</span> Prescriptions
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Manage Availability</h1>
+    <p>Set the days and times you are available for appointments.</p>
+</div>
+
+<div class="card">
+    <div class="card-title">Add Availability</div>
+    <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Day</label>
+                <select name="day_of_week" required>
+                    <option value="">Select day</option>
+                    <option>Monday</option>
+                    <option>Tuesday</option>
+                    <option>Wednesday</option>
+                    <option>Thursday</option>
+                    <option>Friday</option>
+                    <option>Saturday</option>
+                    <option>Sunday</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Start Time</label>
+                <input type="time" name="start_time" required>
+            </div>
+            <div class="form-group">
+                <label>End Time</label>
+                <input type="time" name="end_time" required>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-success">Add</button>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-title">Current Availability</div>
+    {% if availability %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in availability %}
+                <tr>
+                    <td>{{ a.0 }}</td>
+                    <td>{{ a.1 }}</td>
+                    <td>{{ a.2 }}</td>
+                    <td>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="day_of_week" value="{{ a.0 }}">
+                            <input type="hidden" name="start_time" value="{{ a.1 }}">
+                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">No availability set yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

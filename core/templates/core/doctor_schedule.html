@@ -1,0 +1,64 @@
+{% extends 'core/base.html' %}
+{% block title %}Schedule{% endblock %}
+{% block role_label %}Doctor Portal{% endblock %}
+
+{% block nav %}
+<span class="nav-label">Menu</span>
+<a href="{% url 'doctor_dashboard' %}" class="nav-link">
+    <span class="icon">⊞</span> Dashboard
+</a>
+<a href="{% url 'doctor_schedule' %}" class="nav-link active">
+    <span class="icon">📅</span> Schedule
+</a>
+<a href="{% url 'doctor_prescriptions' %}" class="nav-link">
+    <span class="icon">💊</span> Prescriptions
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Schedule</h1>
+    <p>View appointments by date.</p>
+</div>
+
+<div class="card">
+    <form method="GET" style="display:flex; gap:12px; align-items:flex-end; margin-bottom:20px;">
+        <div class="form-group" style="margin:0; flex:1;">
+            <label>Select Date</label>
+            <input type="date" name="date" value="{{ date }}">
+        </div>
+        <button type="submit" class="btn btn-primary">View</button>
+    </form>
+
+    {% if schedule %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Patient</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in schedule %}
+                <tr>
+                    <td>{{ s.1 }}</td>
+                    <td>{{ s.4 }}</td>
+                    <td>{{ s.3 }}</td>
+                    <td><span class="badge badge-{{ s.2|lower }}">{{ s.2 }}</span></td>
+                    <td>
+                        <a href="{% url 'doctor_patient_record' patient_id=s.0 %}" class="btn btn-outline btn-sm">View Record</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">No appointments for this date.</div>
+    {% endif %}
+</div>
+{% endblock %}

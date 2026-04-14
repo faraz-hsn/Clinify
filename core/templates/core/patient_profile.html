@@ -1,0 +1,80 @@
+{% extends 'core/base.html' %}
+{% block title %}Profile{% endblock %}
+{% block role_label %}Patient Portal{% endblock %}
+
+{% block nav %}
+<span class="nav-label">Menu</span>
+<a href="{% url 'patient_dashboard' %}" class="nav-link">
+    <span class="icon">⊞</span> Dashboard
+</a>
+<a href="{% url 'patient_appointments' %}" class="nav-link">
+    <span class="icon">📅</span> Appointments
+</a>
+<a href="{% url 'patient_medical_history' %}" class="nav-link">
+    <span class="icon">📋</span> Medical History
+</a>
+<a href="{% url 'patient_prescriptions' %}" class="nav-link">
+    <span class="icon">💊</span> Prescriptions
+</a>
+<a href="{% url 'patient_profile' %}" class="nav-link active">
+    <span class="icon">👤</span> Profile
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>My Profile</h1>
+    <p>View and update your information.</p>
+</div>
+
+<div class="card">
+    {% if profile %}
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-row">
+            <div class="form-group">
+                <label>First Name</label>
+                <input type="text" value="{{ profile.0 }}" disabled style="background:#f5f7fa;">
+            </div>
+            <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" value="{{ profile.1 }}" disabled style="background:#f5f7fa;">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" value="{{ profile.2 }}" disabled style="background:#f5f7fa;">
+        </div>
+        <div class="form-group">
+            <label>Phone</label>
+            <input type="text" name="phone" value="{{ profile.3|default:'' }}">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Date of Birth</label>
+                <input type="text" value="{{ profile.4 }}" disabled style="background:#f5f7fa;">
+            </div>
+            <div class="form-group">
+                <label>Gender</label>
+                <input type="text" value="{{ profile.5|default:'' }}" disabled style="background:#f5f7fa;">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Address</label>
+            <input type="text" name="address" value="{{ profile.6|default:'' }}">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Emergency Contact Name</label>
+                <input type="text" name="emergency_contact_name" value="{{ profile.7|default:'' }}">
+            </div>
+            <div class="form-group">
+                <label>Emergency Contact Phone</label>
+                <input type="text" name="emergency_contact_phone" value="{{ profile.8|default:'' }}">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

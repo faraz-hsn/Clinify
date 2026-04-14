@@ -1,0 +1,90 @@
+{% extends 'core/base.html' %}
+{% block title %}Medications{% endblock %}
+{% block role_label %}Admin Panel{% endblock %}
+
+{% block nav %}
+<span class="nav-label">Menu</span>
+<a href="{% url 'admin_dashboard' %}" class="nav-link">
+    <span class="icon">⊞</span> Dashboard
+</a>
+<a href="{% url 'admin_appointments' %}" class="nav-link">
+    <span class="icon">📅</span> Appointments
+</a>
+<a href="{% url 'admin_users' %}" class="nav-link">
+    <span class="icon">👥</span> Users
+</a>
+<a href="{% url 'admin_medications' %}" class="nav-link active">
+    <span class="icon">💊</span> Medications
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Medications</h1>
+    <p>Manage the medication catalogue.</p>
+</div>
+
+<!-- ADD FORM -->
+<div class="card">
+    <div class="card-title">Add Medication</div>
+    <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Medication Name</label>
+                <input type="text" name="name" placeholder="e.g. Amoxicillin" required>
+            </div>
+            <div class="form-group">
+                <label>Dosage Form</label>
+                <input type="text" name="dosage_form" placeholder="e.g. 500mg tablet">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Description</label>
+            <input type="text" name="description" placeholder="Brief description">
+        </div>
+        <button type="submit" class="btn btn-success">Add</button>
+    </form>
+</div>
+
+<!-- LIST -->
+<div class="card">
+    <div class="card-title">Medication List</div>
+    {% if medications %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Dosage Form</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in medications %}
+                <tr>
+                    <td>{{ m.0 }}</td>
+                    <td>{{ m.1 }}</td>
+                    <td>{{ m.2|default:"—" }}</td>
+                    <td>{{ m.3|default:"—" }}</td>
+                    <td>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="medication_id" value="{{ m.0 }}">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">No medications found.</div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,12 +1,11 @@
 import hashlib
 import functools
+import json
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .models import get_connection
 from .forms import LoginForm, RegisterForm
 
-
-# ─── helpers ────────────────────────────────────────────
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -27,18 +26,16 @@ def login_required_custom(role=None):
         return wrapper
     return decorator
 
-# ─── auth ───────────────────────────────────────────────
+
+# ── AUTH ─────────────────────────────────────────────────
 
 def index(request):
     user_id, user_role = get_user_from_session(request)
     if not user_id:
         return redirect('login')
-    if user_role == 'patient':
-        return redirect('patient_dashboard')
-    if user_role == 'doctor':
-        return redirect('doctor_dashboard')
-    if user_role == 'admin':
-        return redirect('admin_dashboard')
+    if user_role == 'patient': return redirect('patient_dashboard')
+    if user_role == 'doctor':  return redirect('doctor_dashboard')
+    if user_role == 'admin':   return redirect('admin_dashboard')
     return redirect('login')
 
 
@@ -50,21 +47,22 @@ def login_view(request):
         try:
             conn = get_connection()
             cur  = conn.cursor()
-            cur.execute(
-                'SELECT "User_ID", "Role" FROM "USER" WHERE "Email" = %s AND "Password_Hash" = %s',
-                (email, password)
-            )
+            cur.execute('SELECT user_id, password_hash, role FROM "USER" WHERE email = %s', (email,))
             user = cur.fetchone()
             cur.close()
             conn.close()
-            if user:
-                request.session['user_id']   = user[0]
-                request.session['user_role'] = user[1]
-                return redirect('index')
+
+            if not user:
+                messages.error(request, 'No account found with that email.')
+            elif user[1] != password:
+                messages.error(request, 'Incorrect password.')
             else:
-                messages.error(request, 'Invalid email or password')
+                request.session['user_id']   = user[0]
+                request.session['user_role'] = user[2]
+                return redirect('index')
         except Exception as e:
             messages.error(request, f'Database error: {e}')
+
     return render(request, 'core/login.html', {'form': form})
 
 
@@ -82,41 +80,37 @@ def register_view(request):
             conn = get_connection()
             cur  = conn.cursor()
 
-            # check email not already used
-            cur.execute('SELECT "User_ID" FROM "USER" WHERE "Email" = %s', (d['email'],))
+            cur.execute('SELECT user_id FROM "USER" WHERE email = %s', (d['email'],))
             if cur.fetchone():
-                messages.error(request, 'Email already registered')
+                messages.error(request, 'An account with this email already exists.')
                 cur.close()
                 conn.close()
                 return render(request, 'core/register.html', {'form': form})
 
-            # insert into USER
             cur.execute(
-                '''INSERT INTO "USER" ("First_Name","Last_Name","Email","Phone","Password_Hash","Role")
-                   VALUES (%s,%s,%s,%s,%s,'patient') RETURNING "User_ID"''',
+                '''INSERT INTO "USER" (first_name, last_name, email, phone, password_hash, role)
+                   VALUES (%s,%s,%s,%s,%s,'patient') RETURNING user_id''',
                 (d['first_name'], d['last_name'], d['email'], d['phone'], password_hash)
             )
             user_id = cur.fetchone()[0]
 
-            # insert into PATIENT
             cur.execute(
-                '''INSERT INTO PATIENT
-                   ("Patient_ID","Date_Of_Birth","Gender","Address","Emergency_Contact_Name","Emergency_Contact_Phone")
+                '''INSERT INTO patient (patient_id, date_of_birth, gender, address,
+                   emergency_contact_name, emergency_contact_phone)
                    VALUES (%s,%s,%s,%s,%s,%s)''',
                 (user_id, d['date_of_birth'], d['gender'],
                  d['address'], d['emergency_contact_name'], d['emergency_contact_phone'])
             )
 
-            # create empty medical record
             cur.execute(
-                'INSERT INTO MEDICAL_RECORD ("Patient_ID","Record_Number") VALUES (%s, 1)',
+                'INSERT INTO medical_record (patient_id, record_number) VALUES (%s, 1)',
                 (user_id,)
             )
 
             conn.commit()
             cur.close()
             conn.close()
-            messages.success(request, 'Account created, please log in')
+            messages.success(request, 'Account created successfully. Please log in.')
             return redirect('login')
 
         except Exception as e:
@@ -125,7 +119,7 @@ def register_view(request):
     return render(request, 'core/register.html', {'form': form})
 
 
-# ─── patient ────────────────────────────────────────────
+# ── PATIENT ──────────────────────────────────────────────
 
 @login_required_custom(role='patient')
 def patient_dashboard(request):
@@ -133,26 +127,20 @@ def patient_dashboard(request):
     try:
         conn = get_connection()
         cur  = conn.cursor()
-
-        cur.execute(
-            'SELECT "First_Name","Last_Name" FROM "USER" WHERE "User_ID" = %s',
-            (user_id,)
-        )
+        cur.execute('SELECT first_name, last_name FROM "USER" WHERE user_id = %s', (user_id,))
         user = cur.fetchone()
-
         cur.execute(
-            '''SELECT a."Appointment_ID", a."Appointment_Date", a."Appointment_Time",
-                      a."Status", a."Reason",
-                      u."First_Name" || \' \' || u."Last_Name" AS doctor_name
-               FROM APPOINTMENT a
-               JOIN DOCTOR d ON a."Doctor_ID" = d."Doctor_ID"
-               JOIN "USER" u ON d."Doctor_ID" = u."User_ID"
-               WHERE a."Patient_ID" = %s
-               ORDER BY a."Appointment_Date" DESC LIMIT 5''',
+            '''SELECT a.appointment_id, a.appointment_date, a.appointment_time,
+                      a.status, a.reason,
+                      u.first_name || \' \' || u.last_name AS doctor_name
+               FROM appointment a
+               JOIN doctor d ON a.doctor_id = d.doctor_id
+               JOIN "USER" u ON d.doctor_id = u.user_id
+               WHERE a.patient_id = %s
+               ORDER BY a.appointment_date DESC LIMIT 5''',
             (user_id,)
         )
         appointments = cur.fetchall()
-
         cur.close()
         conn.close()
     except Exception as e:
@@ -160,67 +148,176 @@ def patient_dashboard(request):
         user, appointments = None, []
 
     return render(request, 'core/patient_dashboard.html', {
-        'user': user,
-        'appointments': appointments
+        'user': user, 'appointments': appointments
     })
 
 
 @login_required_custom(role='patient')
-def patient_appointments(request):
+def patient_profile(request):
     user_id, _ = get_user_from_session(request)
     try:
         conn = get_connection()
         cur  = conn.cursor()
 
-        # get all doctors for booking form
-        cur.execute(
-            '''SELECT d."Doctor_ID", u."First_Name" || \' \' || u."Last_Name", d."Specialty"
-               FROM DOCTOR d JOIN "USER" u ON d."Doctor_ID" = u."User_ID"'''
-        )
-        doctors = cur.fetchall()
+        if request.method == 'POST':
+            phone      = request.POST.get('phone')
+            address    = request.POST.get('address')
+            emrg_name  = request.POST.get('emergency_contact_name')
+            emrg_phone = request.POST.get('emergency_contact_phone')
 
-        # get patient appointments
+            cur.execute(
+                'UPDATE "USER" SET phone = %s WHERE user_id = %s',
+                (phone, user_id)
+            )
+            cur.execute(
+                '''UPDATE patient SET address = %s,
+                   emergency_contact_name = %s,
+                   emergency_contact_phone = %s
+                   WHERE patient_id = %s''',
+                (address, emrg_name, emrg_phone, user_id)
+            )
+            conn.commit()
+            messages.success(request, 'Profile updated.')
+
         cur.execute(
-            '''SELECT a."Appointment_ID", a."Appointment_Date", a."Appointment_Time",
-                      a."Status", a."Reason",
-                      u."First_Name" || \' \' || u."Last_Name" AS doctor_name
-               FROM APPOINTMENT a
-               JOIN DOCTOR d ON a."Doctor_ID" = d."Doctor_ID"
-               JOIN "USER" u ON d."Doctor_ID" = u."User_ID"
-               WHERE a."Patient_ID" = %s
-               ORDER BY a."Appointment_Date" DESC''',
+            '''SELECT u.first_name, u.last_name, u.email, u.phone,
+                      p.date_of_birth, p.gender, p.address,
+                      p.emergency_contact_name, p.emergency_contact_phone
+               FROM "USER" u JOIN patient p ON u.user_id = p.patient_id
+               WHERE u.user_id = %s''',
             (user_id,)
         )
-        appointments = cur.fetchall()
+        profile = cur.fetchone()
         cur.close()
         conn.close()
     except Exception as e:
         messages.error(request, f'Error: {e}')
-        doctors, appointments = [], []
+        profile = None
+
+    return render(request, 'core/patient_profile.html', {'profile': profile})
+
+
+@login_required_custom(role='patient')
+def patient_appointments(request):
+    user_id, _ = get_user_from_session(request)
 
     if request.method == 'POST':
-        doctor_id = request.POST.get('doctor_id')
-        date      = request.POST.get('date')
-        time      = request.POST.get('time')
-        reason    = request.POST.get('reason')
-        try:
-            conn = get_connection()
-            cur  = conn.cursor()
-            cur.execute(
-                'SELECT book_appointment(%s,%s,%s,%s,%s)',
-                (user_id, doctor_id, date, time, reason)
-            )
-            conn.commit()
-            cur.close()
-            conn.close()
-            messages.success(request, 'Appointment booked successfully')
-            return redirect('patient_appointments')
-        except Exception as e:
-            messages.error(request, f'Error: {e}')
+        action = request.POST.get('action')
+
+        if action == 'cancel':
+            cancel_id = request.POST.get('cancel_id')
+            try:
+                conn = get_connection()
+                cur  = conn.cursor()
+                cur.execute('SELECT cancel_appointment(%s)', (cancel_id,))
+                conn.commit()
+                cur.close()
+                conn.close()
+                messages.success(request, 'Appointment cancelled.')
+            except Exception as e:
+                messages.error(request, f'Error: {e}')
+
+        elif action == 'reschedule':
+            appt_id  = request.POST.get('appointment_id')
+            new_date = request.POST.get('new_date')
+            new_time = request.POST.get('new_time')
+            try:
+                conn = get_connection()
+                cur  = conn.cursor()
+                cur.execute(
+                    '''UPDATE appointment
+                       SET appointment_date = %s, appointment_time = %s
+                       WHERE appointment_id = %s AND patient_id = %s AND status = 'Scheduled' ''',
+                    (new_date, new_time, appt_id, user_id)
+                )
+                conn.commit()
+                cur.close()
+                conn.close()
+                messages.success(request, 'Appointment rescheduled.')
+            except Exception as e:
+                messages.error(request, f'Error: {e}')
+
+        else:
+            doctor_id = request.POST.get('doctor_id')
+            date      = request.POST.get('date')
+            time      = request.POST.get('time')
+            reason    = request.POST.get('reason')
+            try:
+                conn = get_connection()
+                cur  = conn.cursor()
+
+                import datetime
+                day_name = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%A')
+                cur.execute(
+                    '''SELECT 1 FROM availability
+                       WHERE doctor_id = %s AND day_of_week = %s
+                       AND start_time <= %s AND end_time >= %s''',
+                    (doctor_id, day_name, time, time)
+                )
+                if not cur.fetchone():
+                    messages.error(request, 'Doctor is not available at that time.')
+                else:
+                    cur.execute(
+                        'SELECT book_appointment(%s,%s,%s,%s,%s)',
+                        (user_id, doctor_id, date, time, reason)
+                    )
+                    conn.commit()
+                    messages.success(request, 'Appointment booked successfully.')
+                cur.close()
+                conn.close()
+            except Exception as e:
+                messages.error(request, f'Error: {e}')
+
+        return redirect('patient_appointments')
+
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+
+        cur.execute(
+            '''SELECT d.doctor_id, u.first_name || \' \' || u.last_name, d.specialty
+               FROM doctor d JOIN "USER" u ON d.doctor_id = u.user_id'''
+        )
+        doctors = cur.fetchall()
+
+        cur.execute(
+            '''SELECT a.appointment_id, a.appointment_date, a.appointment_time,
+                      a.status, a.reason,
+                      u.first_name || \' \' || u.last_name AS doctor_name
+               FROM appointment a
+               JOIN doctor d ON a.doctor_id = d.doctor_id
+               JOIN "USER" u ON d.doctor_id = u.user_id
+               WHERE a.patient_id = %s
+               ORDER BY a.appointment_date DESC''',
+            (user_id,)
+        )
+        appointments = cur.fetchall()
+
+        cur.execute(
+            'SELECT doctor_id, day_of_week, start_time, end_time FROM availability ORDER BY doctor_id'
+        )
+        avail_rows = cur.fetchall()
+        availability_map = {}
+        for row in avail_rows:
+            did = str(row[0])
+            if did not in availability_map:
+                availability_map[did] = []
+            availability_map[did].append({
+                'day':   row[1],
+                'start': str(row[2])[:5],
+                'end':   str(row[3])[:5]
+            })
+
+        cur.close()
+        conn.close()
+    except Exception as e:
+        messages.error(request, f'Error: {e}')
+        doctors, appointments, availability_map = [], [], {}
 
     return render(request, 'core/patient_appointments.html', {
-        'appointments': appointments,
-        'doctors': doctors
+        'appointments':      appointments,
+        'doctors':           doctors,
+        'availability_json': json.dumps(availability_map)
     })
 
 
@@ -231,14 +328,14 @@ def patient_medical_history(request):
         conn = get_connection()
         cur  = conn.cursor()
         cur.execute(
-            '''SELECT v."Visit_Date", v."Diagnosis", v."Vitals", v."Visit_Notes",
-                      u."First_Name" || \' \' || u."Last_Name" AS doctor_name
-               FROM VISIT v
-               JOIN APPOINTMENT a ON v."Appointment_ID" = a."Appointment_ID"
-               JOIN DOCTOR d ON a."Doctor_ID" = d."Doctor_ID"
-               JOIN "USER" u ON d."Doctor_ID" = u."User_ID"
-               WHERE v."Patient_ID" = %s
-               ORDER BY v."Visit_Date" DESC''',
+            '''SELECT v.visit_date, v.diagnosis, v.vitals, v.visit_notes,
+                      u.first_name || \' \' || u.last_name AS doctor_name
+               FROM visit v
+               JOIN appointment a ON v.appointment_id = a.appointment_id
+               JOIN doctor d ON a.doctor_id = d.doctor_id
+               JOIN "USER" u ON d.doctor_id = u.user_id
+               WHERE v.patient_id = %s
+               ORDER BY v.visit_date DESC''',
             (user_id,)
         )
         visits = cur.fetchall()
@@ -258,16 +355,16 @@ def patient_prescriptions(request):
         conn = get_connection()
         cur  = conn.cursor()
         cur.execute(
-            '''SELECT p."Prescription_ID", p."Issue_Date",
-                      u."First_Name" || \' \' || u."Last_Name" AS doctor_name,
-                      m."Medication_Name", c."Frequency", c."Duration"
-               FROM PRESCRIPTION p
-               JOIN VISIT v ON p."Visit_ID" = v."Appointment_ID"
-               JOIN "USER" u ON p."Doctor_ID" = u."User_ID"
-               JOIN CONTAINS c ON p."Prescription_ID" = c."Prescription_ID"
-               JOIN MEDICATION m ON c."Medication_ID" = m."Medication_ID"
-               WHERE v."Patient_ID" = %s
-               ORDER BY p."Issue_Date" DESC''',
+            '''SELECT p.prescription_id, p.issue_date,
+                      u.first_name || \' \' || u.last_name AS doctor_name,
+                      m.medication_name, c.frequency, c.duration
+               FROM prescription p
+               JOIN visit v ON p.visit_id = v.appointment_id
+               JOIN "USER" u ON p.doctor_id = u.user_id
+               JOIN contains c ON p.prescription_id = c.prescription_id
+               JOIN medication m ON c.medication_id = m.medication_id
+               WHERE v.patient_id = %s
+               ORDER BY p.issue_date DESC''',
             (user_id,)
         )
         prescriptions = cur.fetchall()
@@ -280,7 +377,7 @@ def patient_prescriptions(request):
     return render(request, 'core/patient_prescriptions.html', {'prescriptions': prescriptions})
 
 
-# ─── doctor ─────────────────────────────────────────────
+# ── DOCTOR ───────────────────────────────────────────────
 
 @login_required_custom(role='doctor')
 def doctor_dashboard(request):
@@ -288,19 +385,10 @@ def doctor_dashboard(request):
     try:
         conn = get_connection()
         cur  = conn.cursor()
-
-        cur.execute(
-            'SELECT "First_Name","Last_Name" FROM "USER" WHERE "User_ID" = %s',
-            (user_id,)
-        )
+        cur.execute('SELECT first_name, last_name FROM "USER" WHERE user_id = %s', (user_id,))
         user = cur.fetchone()
-
-        cur.execute(
-            'SELECT * FROM get_doctor_schedule(%s, CURRENT_DATE)',
-            (user_id,)
-        )
+        cur.execute('SELECT * FROM get_doctor_schedule(%s, CURRENT_DATE)', (user_id,))
         schedule = cur.fetchall()
-
         cur.close()
         conn.close()
     except Exception as e:
@@ -308,8 +396,7 @@ def doctor_dashboard(request):
         user, schedule = None, []
 
     return render(request, 'core/doctor_dashboard.html', {
-        'user': user,
-        'schedule': schedule
+        'user': user, 'schedule': schedule
     })
 
 
@@ -332,47 +419,81 @@ def doctor_schedule(request):
         schedule = []
 
     return render(request, 'core/doctor_schedule.html', {
-        'schedule': schedule,
-        'date': date
+        'schedule': schedule, 'date': date
     })
+
+
+@login_required_custom(role='doctor')
+def doctor_availability(request):
+    user_id, _ = get_user_from_session(request)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        try:
+            conn = get_connection()
+            cur  = conn.cursor()
+            if action == 'add':
+                cur.execute(
+                    '''INSERT INTO availability (doctor_id, day_of_week, start_time, end_time)
+                       VALUES (%s,%s,%s,%s)''',
+                    (user_id, request.POST.get('day_of_week'),
+                     request.POST.get('start_time'), request.POST.get('end_time'))
+                )
+                messages.success(request, 'Availability added.')
+            elif action == 'delete':
+                cur.execute(
+                    '''DELETE FROM availability
+                       WHERE doctor_id = %s AND day_of_week = %s AND start_time = %s''',
+                    (user_id, request.POST.get('day_of_week'), request.POST.get('start_time'))
+                )
+                messages.success(request, 'Availability removed.')
+            conn.commit()
+            cur.close()
+            conn.close()
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+        return redirect('doctor_availability')
+
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        cur.execute(
+            '''SELECT day_of_week, start_time, end_time
+               FROM availability WHERE doctor_id = %s
+               ORDER BY
+                 CASE day_of_week
+                   WHEN 'Monday'    THEN 1
+                   WHEN 'Tuesday'   THEN 2
+                   WHEN 'Wednesday' THEN 3
+                   WHEN 'Thursday'  THEN 4
+                   WHEN 'Friday'    THEN 5
+                   WHEN 'Saturday'  THEN 6
+                   WHEN 'Sunday'    THEN 7
+                 END''',
+            (user_id,)
+        )
+        availability = cur.fetchall()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        messages.error(request, f'Error: {e}')
+        availability = []
+
+    return render(request, 'core/doctor_availability.html', {'availability': availability})
 
 
 @login_required_custom(role='doctor')
 def doctor_patient_record(request, patient_id):
     user_id, _ = get_user_from_session(request)
-    try:
-        conn = get_connection()
-        cur  = conn.cursor()
-
-        cur.execute(
-            '''SELECT u."First_Name", u."Last_Name", p."Date_Of_Birth",
-                      p."Gender", p."Address", p."Emergency_Contact_Name",
-                      p."Emergency_Contact_Phone"
-               FROM PATIENT p JOIN "USER" u ON p."Patient_ID" = u."User_ID"
-               WHERE p."Patient_ID" = %s''',
-            (patient_id,)
-        )
-        patient = cur.fetchone()
-
-        cur.execute(
-            '''SELECT v."Visit_Date", v."Diagnosis", v."Vitals", v."Visit_Notes"
-               FROM VISIT v WHERE v."Patient_ID" = %s
-               ORDER BY v."Visit_Date" DESC''',
-            (patient_id,)
-        )
-        visits = cur.fetchall()
-
-        cur.close()
-        conn.close()
-    except Exception as e:
-        messages.error(request, f'Error: {e}')
-        patient, visits = None, []
 
     if request.method == 'POST':
-        action = request.POST.get('action')
+        action         = request.POST.get('action')
         appointment_id = request.POST.get('appointment_id')
 
         if action == 'record_visit':
+            if not appointment_id:
+                messages.error(request, 'Please select an appointment.')
+                return redirect('doctor_patient_record', patient_id=patient_id)
             diagnosis = request.POST.get('diagnosis')
             vitals    = request.POST.get('vitals')
             notes     = request.POST.get('notes')
@@ -380,21 +501,59 @@ def doctor_patient_record(request, patient_id):
                 conn = get_connection()
                 cur  = conn.cursor()
                 cur.execute(
-                    'SELECT create_visit(%s,%s,%s,%s,%s,%s)',
-                    (appointment_id, patient_id, 1, diagnosis, vitals, notes)
+                    'SELECT create_visit(%s, %s, %s, %s, %s, %s)',
+                    (int(appointment_id), int(patient_id), 1, diagnosis, vitals, notes)
                 )
                 conn.commit()
                 cur.close()
                 conn.close()
-                messages.success(request, 'Visit recorded')
-                return redirect('doctor_patient_record', patient_id=patient_id)
+                messages.success(request, 'Visit recorded successfully.')
             except Exception as e:
                 messages.error(request, f'Error: {e}')
+        return redirect('doctor_patient_record', patient_id=patient_id)
+
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+
+        cur.execute(
+            '''SELECT u.first_name, u.last_name, p.date_of_birth,
+                      p.gender, p.address,
+                      p.emergency_contact_name, p.emergency_contact_phone
+               FROM patient p JOIN "USER" u ON p.patient_id = u.user_id
+               WHERE p.patient_id = %s''',
+            (patient_id,)
+        )
+        patient = cur.fetchone()
+
+        cur.execute(
+            '''SELECT v.visit_date, v.diagnosis, v.vitals, v.visit_notes
+               FROM visit v WHERE v.patient_id = %s
+               ORDER BY v.visit_date DESC''',
+            (patient_id,)
+        )
+        visits = cur.fetchall()
+
+        cur.execute(
+            '''SELECT appointment_id, appointment_date, appointment_time
+               FROM appointment
+               WHERE patient_id = %s AND doctor_id = %s AND status = 'Scheduled'
+               ORDER BY appointment_date''',
+            (patient_id, user_id)
+        )
+        pending_appointments = cur.fetchall()
+
+        cur.close()
+        conn.close()
+    except Exception as e:
+        messages.error(request, f'Error: {e}')
+        patient, visits, pending_appointments = None, [], []
 
     return render(request, 'core/doctor_patient_record.html', {
-        'patient': patient,
-        'visits': visits,
-        'patient_id': patient_id
+        'patient':              patient,
+        'visits':               visits,
+        'patient_id':           patient_id,
+        'pending_appointments': pending_appointments
     })
 
 
@@ -410,56 +569,57 @@ def doctor_prescriptions(request):
             cur.execute('SELECT create_prescription(%s,%s)', (visit_id, user_id))
             prescription_id = cur.fetchone()[0]
 
-            medication_ids = request.POST.getlist('medication_id')
-            frequencies    = request.POST.getlist('frequency')
-            durations      = request.POST.getlist('duration')
-
-            for med_id, freq, dur in zip(medication_ids, frequencies, durations):
+            for med_id, freq, dur in zip(
+                request.POST.getlist('medication_id'),
+                request.POST.getlist('frequency'),
+                request.POST.getlist('duration')
+            ):
                 cur.execute(
-                    'INSERT INTO CONTAINS VALUES (%s,%s,%s,%s)',
+                    'INSERT INTO contains VALUES (%s,%s,%s,%s)',
                     (prescription_id, med_id, freq, dur)
                 )
             conn.commit()
             cur.close()
             conn.close()
-            messages.success(request, 'Prescription created')
+            messages.success(request, 'Prescription created.')
         except Exception as e:
             messages.error(request, f'Error: {e}')
+        return redirect('doctor_prescriptions')
 
     try:
         conn = get_connection()
         cur  = conn.cursor()
+
         cur.execute(
-            '''SELECT p."Prescription_ID", p."Issue_Date",
-                      u."First_Name" || \' \' || u."Last_Name" AS patient_name,
-                      m."Medication_Name", c."Frequency", c."Duration"
-               FROM PRESCRIPTION p
-               JOIN VISIT v ON p."Visit_ID" = v."Appointment_ID"
-               JOIN PATIENT pt ON v."Patient_ID" = pt."Patient_ID"
-               JOIN "USER" u ON pt."Patient_ID" = u."User_ID"
-               JOIN CONTAINS c ON p."Prescription_ID" = c."Prescription_ID"
-               JOIN MEDICATION m ON c."Medication_ID" = m."Medication_ID"
-               WHERE p."Doctor_ID" = %s
-               ORDER BY p."Issue_Date" DESC''',
+            '''SELECT p.prescription_id, p.issue_date,
+                      u.first_name || \' \' || u.last_name AS patient_name,
+                      m.medication_name, c.frequency, c.duration
+               FROM prescription p
+               JOIN visit v ON p.visit_id = v.appointment_id
+               JOIN patient pt ON v.patient_id = pt.patient_id
+               JOIN "USER" u ON pt.patient_id = u.user_id
+               JOIN contains c ON p.prescription_id = c.prescription_id
+               JOIN medication m ON c.medication_id = m.medication_id
+               WHERE p.doctor_id = %s
+               ORDER BY p.issue_date DESC''',
             (user_id,)
         )
         prescriptions = cur.fetchall()
 
-        cur.execute('SELECT "Medication_ID","Medication_Name" FROM MEDICATION')
+        cur.execute('SELECT medication_id, medication_name FROM medication')
         medications = cur.fetchall()
 
         cur.execute(
-            '''SELECT v."Appointment_ID", v."Visit_Date",
-                      u."First_Name" || \' \' || u."Last_Name" AS patient_name
-               FROM VISIT v
-               JOIN PATIENT p ON v."Patient_ID" = p."Patient_ID"
-               JOIN "USER" u ON p."Patient_ID" = u."User_ID"
-               JOIN APPOINTMENT a ON v."Appointment_ID" = a."Appointment_ID"
-               WHERE a."Doctor_ID" = %s''',
+            '''SELECT v.appointment_id, v.visit_date,
+                      u.first_name || \' \' || u.last_name AS patient_name
+               FROM visit v
+               JOIN patient p ON v.patient_id = p.patient_id
+               JOIN "USER" u ON p.patient_id = u.user_id
+               JOIN appointment a ON v.appointment_id = a.appointment_id
+               WHERE a.doctor_id = %s''',
             (user_id,)
         )
         visits = cur.fetchall()
-
         cur.close()
         conn.close()
     except Exception as e:
@@ -468,12 +628,12 @@ def doctor_prescriptions(request):
 
     return render(request, 'core/doctor_prescriptions.html', {
         'prescriptions': prescriptions,
-        'medications': medications,
-        'visits': visits
+        'medications':   medications,
+        'visits':        visits
     })
 
 
-# ─── admin ──────────────────────────────────────────────
+# ── ADMIN ────────────────────────────────────────────────
 
 @login_required_custom(role='admin')
 def admin_dashboard(request):
@@ -481,30 +641,25 @@ def admin_dashboard(request):
     try:
         conn = get_connection()
         cur  = conn.cursor()
-
-        cur.execute('SELECT COUNT(*) FROM PATIENT')
+        cur.execute('SELECT COUNT(*) FROM patient')
         patient_count = cur.fetchone()[0]
-
-        cur.execute('SELECT COUNT(*) FROM DOCTOR')
+        cur.execute('SELECT COUNT(*) FROM doctor')
         doctor_count = cur.fetchone()[0]
-
-        cur.execute('SELECT COUNT(*) FROM APPOINTMENT WHERE "Status" = \'Scheduled\'')
+        cur.execute("SELECT COUNT(*) FROM appointment WHERE status = 'Scheduled'")
         pending_count = cur.fetchone()[0]
-
         cur.execute(
-            '''SELECT a."Appointment_ID", a."Appointment_Date", a."Appointment_Time",
-                      a."Status",
-                      pu."First_Name" || \' \' || pu."Last_Name" AS patient_name,
-                      du."First_Name" || \' \' || du."Last_Name" AS doctor_name
-               FROM APPOINTMENT a
-               JOIN PATIENT p ON a."Patient_ID" = p."Patient_ID"
-               JOIN "USER" pu ON p."Patient_ID" = pu."User_ID"
-               JOIN DOCTOR d ON a."Doctor_ID" = d."Doctor_ID"
-               JOIN "USER" du ON d."Doctor_ID" = du."User_ID"
-               ORDER BY a."Appointment_Date" DESC LIMIT 10'''
+            '''SELECT a.appointment_id, a.appointment_date, a.appointment_time,
+                      a.status,
+                      pu.first_name || \' \' || pu.last_name AS patient_name,
+                      du.first_name || \' \' || du.last_name AS doctor_name
+               FROM appointment a
+               JOIN patient p ON a.patient_id = p.patient_id
+               JOIN "USER" pu ON p.patient_id = pu.user_id
+               JOIN doctor d ON a.doctor_id = d.doctor_id
+               JOIN "USER" du ON d.doctor_id = du.user_id
+               ORDER BY a.appointment_date DESC LIMIT 10'''
         )
         appointments = cur.fetchall()
-
         cur.close()
         conn.close()
     except Exception as e:
@@ -531,15 +686,14 @@ def admin_appointments(request):
             if action == 'cancel':
                 cur.execute('SELECT cancel_appointment(%s)', (appointment_id,))
             elif action == 'update_status':
-                status = request.POST.get('status')
                 cur.execute(
-                    'UPDATE APPOINTMENT SET "Status" = %s WHERE "Appointment_ID" = %s',
-                    (status, appointment_id)
+                    'UPDATE appointment SET status = %s WHERE appointment_id = %s',
+                    (request.POST.get('status'), appointment_id)
                 )
             conn.commit()
             cur.close()
             conn.close()
-            messages.success(request, 'Appointment updated')
+            messages.success(request, 'Appointment updated.')
         except Exception as e:
             messages.error(request, f'Error: {e}')
         return redirect('admin_appointments')
@@ -548,16 +702,16 @@ def admin_appointments(request):
         conn = get_connection()
         cur  = conn.cursor()
         cur.execute(
-            '''SELECT a."Appointment_ID", a."Appointment_Date", a."Appointment_Time",
-                      a."Status", a."Reason",
-                      pu."First_Name" || \' \' || pu."Last_Name" AS patient_name,
-                      du."First_Name" || \' \' || du."Last_Name" AS doctor_name
-               FROM APPOINTMENT a
-               JOIN PATIENT p ON a."Patient_ID" = p."Patient_ID"
-               JOIN "USER" pu ON p."Patient_ID" = pu."User_ID"
-               JOIN DOCTOR d ON a."Doctor_ID" = d."Doctor_ID"
-               JOIN "USER" du ON d."Doctor_ID" = du."User_ID"
-               ORDER BY a."Appointment_Date" DESC'''
+            '''SELECT a.appointment_id, a.appointment_date, a.appointment_time,
+                      a.status, a.reason,
+                      pu.first_name || \' \' || pu.last_name AS patient_name,
+                      du.first_name || \' \' || du.last_name AS doctor_name
+               FROM appointment a
+               JOIN patient p ON a.patient_id = p.patient_id
+               JOIN "USER" pu ON p.patient_id = pu.user_id
+               JOIN doctor d ON a.doctor_id = d.doctor_id
+               JOIN "USER" du ON d.doctor_id = du.user_id
+               ORDER BY a.appointment_date DESC'''
         )
         appointments = cur.fetchall()
         cur.close()
@@ -571,12 +725,35 @@ def admin_appointments(request):
 
 @login_required_custom(role='admin')
 def admin_users(request):
+    if request.method == 'POST':
+        action  = request.POST.get('action')
+        user_id = request.POST.get('user_id')
+        try:
+            conn = get_connection()
+            cur  = conn.cursor()
+            if action == 'edit':
+                cur.execute(
+                    '''UPDATE "USER" SET first_name=%s, last_name=%s, phone=%s, role=%s
+                       WHERE user_id=%s''',
+                    (request.POST.get('first_name'), request.POST.get('last_name'),
+                     request.POST.get('phone'), request.POST.get('role'), user_id)
+                )
+                messages.success(request, 'User updated.')
+            elif action == 'delete':
+                cur.execute('DELETE FROM "USER" WHERE user_id = %s', (user_id,))
+                messages.success(request, 'User deleted.')
+            conn.commit()
+            cur.close()
+            conn.close()
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+        return redirect('admin_users')
+
     try:
         conn = get_connection()
         cur  = conn.cursor()
         cur.execute(
-            '''SELECT "User_ID","First_Name","Last_Name","Email","Phone","Role"
-               FROM "USER" ORDER BY "Role","Last_Name"'''
+            'SELECT user_id, first_name, last_name, email, phone, role FROM "USER" ORDER BY role, last_name'
         )
         users = cur.fetchall()
         cur.close()
@@ -596,20 +773,20 @@ def admin_medications(request):
             conn = get_connection()
             cur  = conn.cursor()
             if action == 'add':
-                name        = request.POST.get('name')
-                description = request.POST.get('description')
-                dosage_form = request.POST.get('dosage_form')
                 cur.execute(
-                    'INSERT INTO MEDICATION ("Medication_Name","Description","Dosage_Form") VALUES (%s,%s,%s)',
-                    (name, description, dosage_form)
+                    'INSERT INTO medication (medication_name, description, dosage_form) VALUES (%s,%s,%s)',
+                    (request.POST.get('name'), request.POST.get('description'),
+                     request.POST.get('dosage_form'))
                 )
             elif action == 'delete':
-                med_id = request.POST.get('medication_id')
-                cur.execute('DELETE FROM MEDICATION WHERE "Medication_ID" = %s', (med_id,))
+                cur.execute(
+                    'DELETE FROM medication WHERE medication_id = %s',
+                    (request.POST.get('medication_id'),)
+                )
             conn.commit()
             cur.close()
             conn.close()
-            messages.success(request, 'Medications updated')
+            messages.success(request, 'Medications updated.')
         except Exception as e:
             messages.error(request, f'Error: {e}')
         return redirect('admin_medications')
@@ -617,7 +794,9 @@ def admin_medications(request):
     try:
         conn = get_connection()
         cur  = conn.cursor()
-        cur.execute('SELECT "Medication_ID","Medication_Name","Description","Dosage_Form" FROM MEDICATION')
+        cur.execute(
+            'SELECT medication_id, medication_name, description, dosage_form FROM medication'
+        )
         medications = cur.fetchall()
         cur.close()
         conn.close()

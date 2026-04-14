@@ -1,0 +1,98 @@
+{% extends 'core/base.html' %}
+{% block title %}Prescriptions{% endblock %}
+{% block role_label %}Doctor Portal{% endblock %}
+
+{% block nav %}
+<span class="nav-label">Menu</span>
+<a href="{% url 'doctor_dashboard' %}" class="nav-link">
+    <span class="icon">⊞</span> Dashboard
+</a>
+<a href="{% url 'doctor_schedule' %}" class="nav-link">
+    <span class="icon">📅</span> Schedule
+</a>
+<a href="{% url 'doctor_prescriptions' %}" class="nav-link active">
+    <span class="icon">💊</span> Prescriptions
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Prescriptions</h1>
+    <p>Create and manage prescriptions.</p>
+</div>
+
+<!-- CREATE FORM -->
+<div class="card">
+    <div class="card-title">New Prescription</div>
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Visit</label>
+            <select name="visit_id" required>
+                <option value="">Select a visit</option>
+                {% for v in visits %}
+                <option value="{{ v.0 }}">{{ v.2 }} — {{ v.1 }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="med-list">
+            <div class="med-row form-row" style="margin-bottom:8px;">
+                <div class="form-group">
+                    <label>Medication</label>
+                    <select name="medication_id">
+                        {% for m in medications %}
+                        <option value="{{ m.0 }}">{{ m.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Frequency</label>
+                    <input type="text" name="frequency" placeholder="e.g. Twice daily">
+                </div>
+                <div class="form-group">
+                    <label>Duration</label>
+                    <input type="text" name="duration" placeholder="e.g. 5 days">
+                </div>
+            </div>
+        </div>
+
+        <button type="button" class="btn btn-outline btn-sm" onclick="addMedRow()" style="margin-bottom:16px;">+ Add Medication</button>
+        <br>
+        <button type="submit" class="btn btn-success">Create Prescription</button>
+    </form>
+</div>
+
+<!-- LIST -->
+<div class="card">
+    <div class="card-title">Issued Prescriptions</div>
+    {% if prescriptions %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Patient</th>
+                    <th>Medication</th>
+                    <th>Frequency</th>
+                    <th>Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in prescriptions %}
+                <tr>
+                    <td>{{ p.1 }}</td>
+                    <td>{{ p.2 }}</td>
+                    <td>{{ p.3 }}</td>
+                    <td>{{ p.4 }}</td>
+                    <td>{{ p.5 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">No prescriptions issued yet.</div>
+    {% endif %}
+</div>
+{% endblock %}
