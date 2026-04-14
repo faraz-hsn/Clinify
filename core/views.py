@@ -41,9 +41,13 @@ def index(request):
 
 def login_view(request):
     form = LoginForm(request.POST or None)
-    if request.method == 'POST' and form.is_valid():
-        email    = form.cleaned_data['email']
-        password = hash_password(form.cleaned_data['password'])
+    if request.method == 'POST':
+        email    = request.POST.get('email', '').strip()
+        password = hash_password(request.POST.get('password', ''))
+        
+        print("EMAIL:", repr(email))
+        print("HASH:", password)
+        
         try:
             conn = get_connection()
             cur  = conn.cursor()
@@ -65,7 +69,6 @@ def login_view(request):
 
     return render(request, 'core/login.html', {'form': form})
 
-
 def logout_view(request):
     request.session.flush()
     return redirect('login')
@@ -80,7 +83,7 @@ def register_view(request):
             conn = get_connection()
             cur  = conn.cursor()
 
-            cur.execute('SELECT user_id FROM "USER" WHERE email = %s', (d['email'],))
+            cur.execute('SELECT user_id FROM "USER" WHERE LOWER(email) = LOWER(%s)', (d['email'],))
             if cur.fetchone():
                 messages.error(request, 'An account with this email already exists.')
                 cur.close()

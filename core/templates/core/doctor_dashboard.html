@@ -10,6 +10,9 @@
 <a href="{% url 'doctor_schedule' %}" class="nav-link">
     <span class="icon">📅</span> Schedule
 </a>
+<a href="{% url 'doctor_availability' %}" class="nav-link">
+    <span class="icon">🕐</span> Availability
+</a>
 <a href="{% url 'doctor_prescriptions' %}" class="nav-link">
     <span class="icon">💊</span> Prescriptions
 </a>
@@ -18,7 +21,7 @@
 {% block content %}
 <div class="page-header">
     <h1>Welcome, Dr. {% if user %}{{ user.0 }} {{ user.1 }}{% endif %}</h1>
-    <p>Today's appointments at a glance.</p>
+    <p>Today's appointments — {{ today }}</p>
 </div>
 
 <div class="card">

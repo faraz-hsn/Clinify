@@ -10,6 +10,9 @@
 <a href="{% url 'doctor_schedule' %}" class="nav-link active">
     <span class="icon">📅</span> Schedule
 </a>
+<a href="{% url 'doctor_availability' %}" class="nav-link">
+    <span class="icon">🕐</span> Availability
+</a>
 <a href="{% url 'doctor_prescriptions' %}" class="nav-link">
     <span class="icon">💊</span> Prescriptions
 </a>
@@ -29,6 +32,12 @@
         </div>
         <button type="submit" class="btn btn-primary">View</button>
     </form>
+
+    {% if date %}
+    <div style="font-size:14px; color:var(--muted); margin-bottom:16px;">
+        Showing appointments for <strong>{{ date }}</strong>
+    </div>
+    {% endif %}
 
     {% if schedule %}
     <div class="table-wrap">

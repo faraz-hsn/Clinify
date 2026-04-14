@@ -22,6 +22,10 @@
 {% endblock %}
 
 {% block content %}
+
+{# pass JSON to JS safely via data attribute to avoid linter errors #}
+<div id="availability-data" data-json="{{ availability_json }}" style="display:none;"></div>
+
 <div class="page-header">
     <h1>Appointments</h1>
     <p>Book or manage your appointments.</p>
@@ -42,7 +46,9 @@
         </div>
 
         <div id="availability-info" style="display:none; margin-bottom:16px;">
-            <div style="font-size:13px; font-weight:600; color:var(--muted); margin-bottom:8px;">AVAILABLE SLOTS</div>
+            <div style="font-size:13px; font-weight:600; color:var(--muted); margin-bottom:8px;">
+                UPCOMING AVAILABLE DATES — click to select
+            </div>
             <div id="availability-list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
         </div>
 
@@ -97,8 +103,7 @@
                             <input type="hidden" name="cancel_id" value="{{ a.0 }}">
                             <button type="submit" name="action" value="cancel" class="btn btn-danger btn-sm">Cancel</button>
                         </form>
-                        <button class="btn btn-outline btn-sm"
-                            onclick="openReschedule('{{ a.0 }}', '{{ a.1 }}', '{{ a.2 }}')">
+                        <button class="btn btn-outline btn-sm" onclick="openReschedule('{{ a.0 }}')">
                             Reschedule
                         </button>
                         {% endif %}
@@ -117,6 +122,9 @@
 <div class="modal-backdrop" id="reschedule-modal">
     <div class="modal">
         <h3>Reschedule Appointment</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
+            Check the doctor's available slots above before selecting a new date.
+        </p>
         <form method="POST">
             {% csrf_token %}
             <input type="hidden" name="action" value="reschedule">
@@ -138,9 +146,39 @@
 </div>
 
 <script>
-const availabilityData = {{ availability_json|safe }};
+// read JSON from data attribute — avoids Django template tag inside script block
+const availabilityData = JSON.parse(
+    document.getElementById('availability-data').getAttribute('data-json')
+);
 
-document.getElementById('doctor-select').addEventListener('change', function() {
+function getUpcomingDates(dayName, count) {
+    const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const target = days.indexOf(dayName);
+    const dates  = [];
+    const today  = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 1; i <= 60 && dates.length < count; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        if (d.getDay() === target) dates.push(d);
+    }
+    return dates;
+}
+
+function formatDate(d) {
+    return d.toLocaleDateString('en-CA', {
+        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+    });
+}
+
+function toISODate(d) {
+    return d.getFullYear() + '-' +
+           String(d.getMonth() + 1).padStart(2, '0') + '-' +
+           String(d.getDate()).padStart(2, '0');
+}
+
+document.getElementById('doctor-select').addEventListener('change', function () {
     const doctorId = this.value;
     const infoDiv  = document.getElementById('availability-info');
     const listDiv  = document.getElementById('availability-list');
@@ -151,47 +189,62 @@ document.getElementById('doctor-select').addEventListener('change', function() {
     }
 
     const slots = availabilityData[doctorId];
-    listDiv.innerHTML = slots.map(s =>
-        `<span style="background:var(--primary-lt);color:var(--primary);
-                      padding:4px 12px;border-radius:20px;font-size:13px;">
-            ${s.day}: ${s.start} – ${s.end}
-        </span>`
-    ).join('');
+    let html = '';
+
+    slots.forEach(function(s) {
+        const upcoming = getUpcomingDates(s.day, 2);
+        upcoming.forEach(function(date) {
+            const isoStr  = toISODate(date);
+            const display = formatDate(date);
+            html += '<span ' +
+                'style="background:var(--primary-lt);color:var(--primary);' +
+                'padding:4px 12px;border-radius:20px;font-size:13px;cursor:pointer;" ' +
+                'onclick="fillDate(\'' + isoStr + '\')">' +
+                display + ' &nbsp;' + s.start + '–' + s.end +
+                '</span>';
+        });
+    });
+
+    listDiv.innerHTML = html;
     infoDiv.style.display = 'block';
     updateTimeSlots();
 });
 
 document.getElementById('date-input').addEventListener('change', updateTimeSlots);
 
+function fillDate(dateStr) {
+    document.getElementById('date-input').value = dateStr;
+    updateTimeSlots();
+}
+
 function updateTimeSlots() {
-    const doctorId  = document.getElementById('doctor-select').value;
-    const dateInput = document.getElementById('date-input').value;
-    const timeSelect = document.getElementById('time-select');
+    var doctorId   = document.getElementById('doctor-select').value;
+    var dateInput  = document.getElementById('date-input').value;
+    var timeSelect = document.getElementById('time-select');
 
     timeSelect.innerHTML = '<option value="">Select a time</option>';
-
     if (!doctorId || !dateInput || !availabilityData[doctorId]) return;
 
-    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const dayName = days[new Date(dateInput + 'T00:00:00').getDay()];
-    const slots = availabilityData[doctorId].filter(s => s.day === dayName);
+    var days    = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var dayName = days[new Date(dateInput + 'T00:00:00').getDay()];
+    var slots   = availabilityData[doctorId].filter(function(s) { return s.day === dayName; });
 
     if (slots.length === 0) {
-        timeSelect.innerHTML = '<option value="">Doctor not available this day</option>';
+        timeSelect.innerHTML = '<option value="">Doctor not available on this date</option>';
         return;
     }
 
-    slots.forEach(slot => {
-        let current = slot.start;
+    slots.forEach(function(slot) {
+        var current = slot.start;
         while (current < slot.end) {
-            const opt = document.createElement('option');
+            var opt = document.createElement('option');
             opt.value = current;
             opt.textContent = current;
             timeSelect.appendChild(opt);
-            const [h, m] = current.split(':').map(Number);
-            const next = new Date(0, 0, 0, h, m + 30);
-            current = next.getHours().toString().padStart(2,'0') + ':' +
-                      next.getMinutes().toString().padStart(2,'0');
+            var parts = current.split(':').map(Number);
+            var next  = new Date(0, 0, 0, parts[0], parts[1] + 30);
+            current   = String(next.getHours()).padStart(2, '0') + ':' +
+                        String(next.getMinutes()).padStart(2, '0');
         }
     });
 }

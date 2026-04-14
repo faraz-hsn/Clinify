@@ -10,7 +10,10 @@
 <a href="{% url 'doctor_schedule' %}" class="nav-link">
     <span class="icon">📅</span> Schedule
 </a>
-<a href="{% url 'doctor_prescriptions' %}" class="nav-link active">
+<a href="{% url 'doctor_availability' %}" class="nav-link">
+    <span class="icon">🕐</span> Availability
+</a>
+<a href="{% url 'doctor_prescriptions' %}" class="nav-link">
     <span class="icon">💊</span> Prescriptions
 </a>
 {% endblock %}
