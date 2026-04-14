@@ -107,7 +107,7 @@ CREATE TABLE MEDICATION (
 
 CREATE TABLE PRESCRIPTION (
     Prescription_ID SERIAL PRIMARY KEY,
-    Visit_ID        INT  NOT NULL,
+    Visit_ID        INT  NOT NULL UNIQUE,
     Doctor_ID       INT  NOT NULL,
     Issue_Date      DATE NOT NULL,
     CONSTRAINT fk_prescription_visit
@@ -205,37 +205,29 @@ CREATE OR REPLACE FUNCTION create_prescription(
 DECLARE
     new_id INT;
 BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM VISIT v
+        JOIN APPOINTMENT a ON a.Appointment_ID = v.Appointment_ID
+        WHERE v.Appointment_ID = p_visit_id
+          AND a.Doctor_ID = p_doctor_id
+          AND a.Status = 'Completed'
+    ) THEN
+        RAISE EXCEPTION 'Only the assigned doctor can prescribe for a completed visit.';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM PRESCRIPTION
+        WHERE Visit_ID = p_visit_id
+    ) THEN
+        RAISE EXCEPTION 'A prescription already exists for this visit.';
+    END IF;
+
     INSERT INTO PRESCRIPTION (Visit_ID, Doctor_ID, Issue_Date)
     VALUES (p_visit_id, p_doctor_id, CURRENT_DATE)
     RETURNING Prescription_ID INTO new_id;
+
     RETURN new_id;
-END;
-$$ LANGUAGE plpgsql;
-
-
-CREATE OR REPLACE FUNCTION get_doctor_schedule(
-    p_doctor_id INT,
-    p_date      DATE
-) RETURNS TABLE (
-    Appointment_ID   INT,
-    Appointment_Time TIME,
-    Status           VARCHAR,
-    Reason           TEXT,
-    Patient_Name     TEXT
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT
-        a.Appointment_ID,
-        a.Appointment_Time,
-        a.Status,
-        a.Reason,
-        u.First_Name || ' ' || u.Last_Name AS Patient_Name
-    FROM APPOINTMENT a
-    JOIN PATIENT p ON a.Patient_ID = p.Patient_ID
-    JOIN "USER" u ON p.Patient_ID = u.User_ID
-    WHERE a.Doctor_ID = p_doctor_id
-      AND a.Appointment_Date = p_date
-    ORDER BY a.Appointment_Time;
 END;
 $$ LANGUAGE plpgsql;

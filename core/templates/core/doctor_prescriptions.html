@@ -25,7 +25,7 @@
             <select name="visit_id" required>
                 <option value="">Select a visit</option>
                 {% for v in visits %}
-                <option value="{{ v.0 }}">{{ v.2 }} — {{ v.1|date:"M d, Y" }}</option>
+                <option value="{{ v.0 }}" {% if selected_visit_id == v.0|stringformat:"s" %}selected{% endif %}>{{ v.2 }} — {{ v.1|date:"M d, Y" }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -55,6 +55,9 @@
         <br>
         <button type="submit" class="btn btn-success">Create Prescription</button>
     </form>
+    {% if not visits %}
+    <div class="empty" style="margin-top:16px;">No completed visits are waiting for a prescription.</div>
+    {% endif %}
 </div>
 
 <div class="card">
