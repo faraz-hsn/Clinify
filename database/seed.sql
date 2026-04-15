@@ -1,12 +1,12 @@
 \c clinic_management;
 
 INSERT INTO "USER" (first_name, last_name, email, phone, password_hash, role) VALUES
-('Alex',     'Johnson',  'alex.johnson@email.com',  '4031111111', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', 'patient'),
-('Sarah',    'Lee',      'sarah.lee@email.com',     '4032222222', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', 'patient'),
-('Michael',  'Brown',    'michael.brown@email.com', '4033333333', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', 'patient'),
-('Rose',     'Smith',    'rose.smith@email.com',    '4034444444', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', 'doctor'),
-('James',    'Wilson',   'james.wilson@email.com',  '4035555555', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', 'doctor'),
-('Sara',     'Admin',    'sara.admin@email.com',    '4036666666', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', 'admin');
+('Alex',     'Johnson',  'alex.johnson@email.com',  '4031111111', 'pbkdf2_sha256$600000$cd7oItCoJRKmEbS3IkjeiF$loeLo0vZjx0mQ2gufUVpD2I9tFmN5ItChrgqi1kkEZ0=', 'patient'),
+('Sarah',    'Lee',      'sarah.lee@email.com',     '4032222222', 'pbkdf2_sha256$600000$cd7oItCoJRKmEbS3IkjeiF$loeLo0vZjx0mQ2gufUVpD2I9tFmN5ItChrgqi1kkEZ0=', 'patient'),
+('Michael',  'Brown',    'michael.brown@email.com', '4033333333', 'pbkdf2_sha256$600000$cd7oItCoJRKmEbS3IkjeiF$loeLo0vZjx0mQ2gufUVpD2I9tFmN5ItChrgqi1kkEZ0=', 'patient'),
+('Rose',     'Smith',    'rose.smith@email.com',    '4034444444', 'pbkdf2_sha256$600000$cd7oItCoJRKmEbS3IkjeiF$loeLo0vZjx0mQ2gufUVpD2I9tFmN5ItChrgqi1kkEZ0=', 'doctor'),
+('James',    'Wilson',   'james.wilson@email.com',  '4035555555', 'pbkdf2_sha256$600000$cd7oItCoJRKmEbS3IkjeiF$loeLo0vZjx0mQ2gufUVpD2I9tFmN5ItChrgqi1kkEZ0=', 'doctor'),
+('Sara',     'Admin',    'sara.admin@email.com',    '4036666666', 'pbkdf2_sha256$600000$cd7oItCoJRKmEbS3IkjeiF$loeLo0vZjx0mQ2gufUVpD2I9tFmN5ItChrgqi1kkEZ0=', 'admin');
 
 INSERT INTO patient (patient_id, date_of_birth, gender, address, emergency_contact_name, emergency_contact_phone) VALUES
 (1, '1995-03-10', 'Male',   '123 Main St, Calgary',   'Mary Johnson', '4039991111'),
