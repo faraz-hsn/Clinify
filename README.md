@@ -38,14 +38,17 @@ python manage.py runserver
 
 ## Project Structure
 
-| Folder          | Purpose                                      |
-| --------------- | -------------------------------------------- |
-| `accounts/`     | Login, logout, registration (Django auth)    |
-| `patient/`      | Patient portal views and templates           |
-| `doctor/`       | Doctor portal views and templates            |
-| `clinic_admin/` | Admin panel views and templates              |
-| `core/`         | Shared utilities (DB connection, decorators) |
-| `database/`     | PostgreSQL schema and seed data              |
+| Folder          | Purpose                                             |
+| --------------- | --------------------------------------------------- |
+| `config/`       | Django project settings, root URLs, WSGI/ASGI       |
+| `common/`       | Shared utilities (DB cursor, decorators, session)   |
+| `accounts/`     | Login, logout, registration (Django auth)           |
+| `patient/`      | Patient portal views and templates                  |
+| `doctor/`       | Doctor portal views and templates                   |
+| `clinic_admin/` | Admin panel views and templates                     |
+| `database/`     | PostgreSQL schema and seed data                     |
+
+Each feature app is split into `urls.py` → `views.py` (thin, HTTP only) → `services.py` (writes) / `selectors.py` (reads), which call the raw-SQL helpers in `common/db.py`.
 
 ---
 

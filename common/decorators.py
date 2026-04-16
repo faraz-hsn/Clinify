@@ -1,9 +1,8 @@
 import functools
+
 from django.shortcuts import redirect
 
-
-def get_user_from_session(request):
-    return request.session.get('user_id'), request.session.get('user_role')
+from .session import get_user_from_session
 
 
 def login_required_custom(role=None):
