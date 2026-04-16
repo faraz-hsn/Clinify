@@ -8,6 +8,18 @@ function addMedRow() {
 
     const clone = first.cloneNode(true);
     clone.querySelectorAll('input').forEach(i => i.value = '');
+
+    const removeGroup = document.createElement('div');
+    removeGroup.className = 'form-group';
+    removeGroup.style.alignSelf = 'end';
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn btn-danger btn-sm';
+    removeBtn.textContent = 'Remove';
+    removeBtn.onclick = () => clone.remove();
+    removeGroup.appendChild(removeBtn);
+    clone.appendChild(removeGroup);
+
     list.appendChild(clone);
 }
 
