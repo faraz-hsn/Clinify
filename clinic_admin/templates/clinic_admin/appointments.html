@@ -48,23 +48,27 @@
                     <td>Dr. {{ a.5 }}</td>
                     <td>{{ a.6 }}</td>
                     <td><span class="badge badge-{{ a.3|lower }}">{{ a.3 }}</span></td>
-                    <td style="display:flex; gap:6px;">
+                    <td>
                         {% if a.3 == 'Scheduled' %}
-                        <form method="POST">
-                            {% csrf_token %}
-                            <input type="hidden" name="appointment_id" value="{{ a.0 }}">
-                            <button type="submit" name="action" value="cancel" class="btn btn-danger btn-sm">Cancel</button>
-                        </form>
-                        <form method="POST">
-                            {% csrf_token %}
-                            <input type="hidden" name="appointment_id" value="{{ a.0 }}">
-                            <input type="hidden" name="action" value="update_status">
-                            <select name="status" onchange="this.form.submit()" style="padding:5px 8px; border-radius:6px; border:1px solid var(--border); font-size:13px;">
-                                <option value="">Update</option>
-                                <option value="Completed">Completed</option>
-                                <option value="No-Show">No-Show</option>
-                            </select>
-                        </form>
+                        <div style="display:flex; gap:6px;">
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="appointment_id" value="{{ a.0 }}">
+                                <button type="submit" name="action" value="cancel" class="btn btn-danger btn-sm">Cancel</button>
+                            </form>
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="appointment_id" value="{{ a.0 }}">
+                                <input type="hidden" name="action" value="update_status">
+                                <select name="status" onchange="this.form.submit()" style="padding:5px 8px; border-radius:6px; border:1px solid var(--border); font-size:13px;">
+                                    <option value="">Update</option>
+                                    <option value="Completed">Completed</option>
+                                    <option value="No-Show">No-Show</option>
+                                </select>
+                            </form>
+                        </div>
+                        {% else %}
+                        —
                         {% endif %}
                     </td>
                 </tr>
