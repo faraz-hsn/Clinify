@@ -78,14 +78,18 @@
                     <td>Dr. {{ a.5 }}</td>
                     <td>{{ a.4 }}</td>
                     <td><span class="badge badge-{{ a.3|lower }}">{{ a.3 }}</span></td>
-                    <td style="display:flex; gap:6px;">
+                    <td>
                         {% if a.3 == 'Scheduled' %}
-                        <form method="POST">
-                            {% csrf_token %}
-                            <input type="hidden" name="cancel_id" value="{{ a.0 }}">
-                            <button type="submit" name="action" value="cancel" class="btn btn-danger btn-sm">Cancel</button>
-                        </form>
-                        <button class="btn btn-outline btn-sm" onclick="openReschedule('{{ a.0 }}')">Reschedule</button>
+                        <div style="display:flex; gap:6px;">
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="cancel_id" value="{{ a.0 }}">
+                                <button type="submit" name="action" value="cancel" class="btn btn-danger btn-sm">Cancel</button>
+                            </form>
+                            <button class="btn btn-outline btn-sm" onclick="openReschedule('{{ a.0 }}')">Reschedule</button>
+                        </div>
+                        {% else %}
+                        —
                         {% endif %}
                     </td>
                 </tr>
