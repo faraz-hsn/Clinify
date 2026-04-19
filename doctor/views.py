@@ -9,10 +9,21 @@ from common.session import get_user_from_session
 from . import selectors, services
 
 
+def _profile_is_complete(profile):
+    # profile tuple: (first_name, last_name, email, phone, specialty, license_number)
+    return bool(profile and profile[4])  # specialty set
+
+
 @login_required_custom(role='doctor')
 def doctor_dashboard(request):
     user_id, _ = get_user_from_session(request)
     try:
+        if not _profile_is_complete(selectors.get_profile(user_id)):
+            messages.info(
+                request,
+                'Please complete your profile before using the doctor portal.',
+            )
+            return redirect('doctor_profile')
         user = selectors.get_user_name(user_id)
         schedule = selectors.get_schedule(user_id)
     except Exception as e:
@@ -22,6 +33,31 @@ def doctor_dashboard(request):
         'user': user,
         'schedule': schedule,
         'today': datetime.date.today().strftime('%A, %B %d, %Y'),
+    })
+
+
+@login_required_custom(role='doctor')
+def doctor_profile(request):
+    user_id, _ = get_user_from_session(request)
+    if request.method == 'POST':
+        try:
+            services.update_profile(
+                user_id,
+                request.POST.get('phone'),
+                request.POST.get('specialty'),
+            )
+            messages.success(request, 'Profile updated.')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+
+    try:
+        profile = selectors.get_profile(user_id)
+    except Exception as e:
+        messages.error(request, f'Error: {e}')
+        profile = None
+    return render(request, 'doctor/profile.html', {
+        'profile': profile,
+        'profile_complete': _profile_is_complete(profile),
     })
 
 

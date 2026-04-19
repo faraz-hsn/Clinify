@@ -1,10 +1,13 @@
 import datetime
 
 from common.db import db_cursor
+from common.phone import normalize_phone
 
 
 def update_profile(patient_id, phone, date_of_birth, gender, address,
                    emergency_contact_name, emergency_contact_phone):
+    phone = normalize_phone(phone)
+    emergency_contact_phone = normalize_phone(emergency_contact_phone)
     with db_cursor(commit=True) as cur:
         cur.execute(
             'UPDATE "USER" SET phone = %s WHERE user_id = %s',

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Profile{% endblock %}
+{% block role_label %}Doctor Portal{% endblock %}
+
+{% block nav %}
+<span class="nav-label">Menu</span>
+<a href="{% url 'doctor_dashboard' %}" class="nav-link"><span class="icon">⊞</span> Dashboard</a>
+<a href="{% url 'doctor_schedule' %}" class="nav-link"><span class="icon">📅</span> Schedule</a>
+<a href="{% url 'doctor_availability' %}" class="nav-link"><span class="icon">🕐</span> Availability</a>
+<a href="{% url 'doctor_prescriptions' %}" class="nav-link"><span class="icon">💊</span> Prescriptions</a>
+<a href="{% url 'doctor_profile' %}" class="nav-link active"><span class="icon">👤</span> Profile</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>My Profile</h1>
+    <p>View and update your information.</p>
+</div>
+
+{% if not profile_complete %}
+<div class="alert alert-error" style="margin-bottom:16px;">
+    Your profile is incomplete. Please set your specialty to start using the doctor portal.
+</div>
+{% endif %}
+
+<div class="card">
+    {% if profile %}
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-row">
+            <div class="form-group">
+                <label>First Name</label>
+                <input type="text" value="{{ profile.0 }}" disabled style="background:#f5f7fa;">
+            </div>
+            <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" value="{{ profile.1 }}" disabled style="background:#f5f7fa;">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" value="{{ profile.2 }}" disabled style="background:#f5f7fa;">
+        </div>
+        <div class="form-group">
+            <label>License Number</label>
+            <input type="text" value="{{ profile.5 }}" disabled style="background:#f5f7fa;">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="tel" name="phone" value="{{ profile.3|default:'' }}" placeholder="(403) 000-0000">
+            </div>
+            <div class="form-group">
+                <label>Specialty</label>
+                <input type="text" name="specialty" value="{{ profile.4|default:'' }}" placeholder="e.g. Cardiology" required>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

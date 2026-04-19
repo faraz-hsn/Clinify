@@ -10,6 +10,18 @@ def get_user_name(user_id):
         return cur.fetchone()
 
 
+def get_profile(doctor_id):
+    with db_cursor() as cur:
+        cur.execute(
+            '''SELECT u.first_name, u.last_name, u.email, u.phone,
+                      d.specialty, d.license_number
+               FROM "USER" u JOIN doctor d ON u.user_id = d.doctor_id
+               WHERE u.user_id = %s''',
+            (doctor_id,),
+        )
+        return cur.fetchone()
+
+
 def get_schedule(doctor_id, date=None):
     """Call get_doctor_schedule stored proc. date=None → CURRENT_DATE."""
     with db_cursor() as cur:

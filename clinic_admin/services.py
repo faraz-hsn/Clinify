@@ -1,4 +1,5 @@
 from common.db import db_cursor
+from common.phone import normalize_phone
 
 from . import selectors
 
@@ -24,6 +25,7 @@ def update_user(user_id, first_name, last_name, phone, new_role):
             f'Role change not allowed. User is currently a {current_role}. '
             'Delete and re-create the account to change roles.'
         )
+    phone = normalize_phone(phone)
     with db_cursor(commit=True) as cur:
         cur.execute(
             'UPDATE "USER" SET first_name=%s, last_name=%s, phone=%s WHERE user_id=%s',

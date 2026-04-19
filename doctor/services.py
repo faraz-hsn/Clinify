@@ -1,4 +1,18 @@
 from common.db import db_cursor
+from common.phone import normalize_phone
+
+
+def update_profile(doctor_id, phone, specialty):
+    phone = normalize_phone(phone)
+    with db_cursor(commit=True) as cur:
+        cur.execute(
+            'UPDATE "USER" SET phone = %s WHERE user_id = %s',
+            (phone, doctor_id),
+        )
+        cur.execute(
+            'UPDATE doctor SET specialty = %s WHERE doctor_id = %s',
+            (specialty or None, doctor_id),
+        )
 
 
 def add_availability(doctor_id, day_of_week, start_time, end_time):
