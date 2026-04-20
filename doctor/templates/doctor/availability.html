@@ -60,8 +60,8 @@
                 {% for a in availability %}
                 <tr>
                     <td>{{ a.0 }}</td>
-                    <td>{{ a.1|time:"H:i" }}</td>
-                    <td>{{ a.2|time:"H:i" }}</td>
+                    <td>{{ a.1|time:"g:i A" }}</td>
+                    <td>{{ a.2|time:"g:i A" }}</td>
                     <td>
                         <form method="POST">
                             {% csrf_token %}

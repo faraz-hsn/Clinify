@@ -58,7 +58,7 @@
             <select name="appointment_id" required>
                 <option value="">Select appointment</option>
                 {% for a in pending_appointments %}
-                <option value="{{ a.0 }}">{{ a.1|date:"M d, Y" }} at {{ a.2|time:"H:i" }}</option>
+                <option value="{{ a.0 }}">{{ a.1|date:"M d, Y" }} at {{ a.2|time:"g:i A" }}</option>
                 {% endfor %}
             </select>
         </div>

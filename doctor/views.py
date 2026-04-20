@@ -3,6 +3,7 @@ import datetime
 
 from django.contrib import messages
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
 from common.decorators import login_required_custom
 from common.session import get_user_from_session
@@ -18,7 +19,7 @@ def _profile_is_complete(profile):
 @login_required_custom(role='doctor')
 def doctor_dashboard(request):
     user_id, _ = get_user_from_session(request)
-    today = datetime.date.today()
+    today = timezone.localdate()
 
     try:
         if not _profile_is_complete(selectors.get_profile(user_id)):

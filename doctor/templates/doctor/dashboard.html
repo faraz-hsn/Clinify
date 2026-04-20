@@ -57,7 +57,7 @@
                 <tbody>
                     {% for s in selected_schedule %}
                     <tr>
-                        <td>{{ s.1|time:"H:i" }}</td>
+                        <td>{{ s.1|time:"g:i A" }}</td>
                         <td>{{ s.4 }}</td>
                         <td>{{ s.3 }}</td>
                         <td><span class="badge badge-{{ s.2|lower }}">{{ s.2 }}</span></td>
@@ -85,7 +85,7 @@
                 {% for a in upcoming %}
                 <tr>
                     <td>{{ a.0|date:"D, M j" }}</td>
-                    <td>{{ a.1|time:"H:i" }}</td>
+                    <td>{{ a.1|time:"g:i A" }}</td>
                     <td>{{ a.4 }}</td>
                     <td>{{ a.3 }}</td>
                     <td><span class="badge badge-{{ a.2|lower }}">{{ a.2 }}</span></td>

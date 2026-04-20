@@ -23,6 +23,15 @@ function addMedRow() {
     list.appendChild(clone);
 }
 
+(function setTimezoneCookie() {
+    try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (!tz) return;
+        if (document.cookie.split('; ').some(c => c.startsWith('tz=' + tz))) return;
+        document.cookie = 'tz=' + tz + '; path=/; max-age=31536000; samesite=lax';
+    } catch (e) {}
+})();
+
 document.addEventListener('input', function (e) {
     const el = e.target;
     if (!(el instanceof HTMLInputElement) || el.type !== 'tel') return;

@@ -74,7 +74,7 @@
                 {% for a in appointments %}
                 <tr>
                     <td>{{ a.1|date:"M d, Y" }}</td>
-                    <td>{{ a.2|time:"H:i" }}</td>
+                    <td>{{ a.2|time:"g:i A" }}</td>
                     <td>Dr. {{ a.5 }}</td>
                     <td>{{ a.4 }}</td>
                     <td><span class="badge badge-{{ a.3|lower }}">{{ a.3 }}</span></td>
