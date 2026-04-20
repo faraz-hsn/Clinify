@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Appointments{% endblock %}
 {% block role_label %}Admin Panel{% endblock %}
 
@@ -63,7 +64,7 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="appointment_id" value="{{ a.0 }}">
                                 <input type="hidden" name="action" value="update_status">
-                                <select name="status" onchange="this.form.submit()" style="padding:5px 8px; border-radius:6px; border:1px solid var(--border); font-size:13px;">
+                                <select name="status" data-auto-submit style="padding:5px 8px; border-radius:6px; border:1px solid var(--border); font-size:13px;">
                                     <option value="">Update</option>
                                     <option value="Completed">Completed</option>
                                     <option value="No-Show">No-Show</option>
@@ -83,4 +84,8 @@
     <div class="empty">No appointments found.</div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/form_auto_submit.js' %}"></script>
 {% endblock %}

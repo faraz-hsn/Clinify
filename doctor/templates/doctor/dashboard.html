@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Calendar{% endblock %}
 {% block role_label %}Doctor Portal{% endblock %}
 
@@ -56,7 +57,7 @@
                 </thead>
                 <tbody>
                     {% for s in selected_schedule %}
-                    <tr class="appt-row" onclick="window.location='{% url 'doctor_appointment' appointment_id=s.0 %}'">
+                    <tr class="appt-row" data-href="{% url 'doctor_appointment' appointment_id=s.0 %}">
                         <td>{{ s.1|time:"g:i A" }}</td>
                         <td>{{ s.4 }}</td>
                         <td><div class="truncate" title="{{ s.3 }}">{{ s.3 }}</div></td>
@@ -83,7 +84,7 @@
             </thead>
             <tbody>
                 {% for a in upcoming %}
-                <tr class="appt-row" onclick="window.location='{% url 'doctor_appointment' appointment_id=a.6 %}'">
+                <tr class="appt-row" data-href="{% url 'doctor_appointment' appointment_id=a.6 %}">
                     <td>{{ a.0|date:"D, M j" }}</td>
                     <td>{{ a.1|time:"g:i A" }}</td>
                     <td>{{ a.4 }}</td>
@@ -99,4 +100,8 @@
     <div class="empty">No upcoming appointments.</div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/row_navigate.js' %}"></script>
 {% endblock %}

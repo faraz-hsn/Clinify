@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Appointment{% endblock %}
 {% block role_label %}Doctor Portal{% endblock %}
 
@@ -123,8 +124,8 @@
 <div class="card">
     <div class="card-title">Other Actions</div>
     <div style="display:flex; gap:12px; flex-wrap:wrap;">
-        <button type="button" class="btn btn-outline" onclick="openConfirm('no_show')">Mark No-Show</button>
-        <button type="button" class="btn btn-danger" onclick="openConfirm('cancel')">Cancel Appointment</button>
+        <button type="button" class="btn btn-outline" data-confirm="no_show">Mark No-Show</button>
+        <button type="button" class="btn btn-danger" data-confirm="cancel">Cancel Appointment</button>
     </div>
 </div>
 
@@ -136,45 +137,16 @@
             {% csrf_token %}
             <input type="hidden" name="action" id="confirm-action">
             <div class="modal-actions">
-                <button type="button" class="btn btn-outline" onclick="closeConfirm()">Back</button>
+                <button type="button" class="btn btn-outline" data-close-modal="confirm-modal">Back</button>
                 <button type="submit" class="btn btn-danger" id="confirm-submit">Confirm</button>
             </div>
         </form>
     </div>
 </div>
+{% endif %}
+{% endif %}
+{% endblock %}
 
-<script>
-const CONFIRM_COPY = {
-    no_show: {
-        title: 'Mark as No-Show?',
-        body: 'The patient did not attend this appointment. This cannot be undone.',
-        submit: 'Mark No-Show',
-        submitClass: 'btn btn-outline',
-    },
-    cancel: {
-        title: 'Cancel Appointment?',
-        body: 'The appointment will be cancelled and the patient will be notified. This cannot be undone.',
-        submit: 'Cancel Appointment',
-        submitClass: 'btn btn-danger',
-    },
-};
-function openConfirm(action) {
-    const copy = CONFIRM_COPY[action];
-    document.getElementById('confirm-title').textContent = copy.title;
-    document.getElementById('confirm-body').textContent = copy.body;
-    document.getElementById('confirm-action').value = action;
-    const btn = document.getElementById('confirm-submit');
-    btn.textContent = copy.submit;
-    btn.className = copy.submitClass;
-    document.getElementById('confirm-modal').classList.add('open');
-}
-function closeConfirm() {
-    document.getElementById('confirm-modal').classList.remove('open');
-}
-document.getElementById('confirm-modal').addEventListener('click', function(e) {
-    if (e.target === this) closeConfirm();
-});
-</script>
-{% endif %}
-{% endif %}
+{% block extra_js %}
+<script src="{% static 'js/doctor_appointment.js' %}"></script>
 {% endblock %}

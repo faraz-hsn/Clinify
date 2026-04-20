@@ -510,6 +510,15 @@ tbody tr:hover { background: var(--bg); }
     margin-top: 20px;
 }
 
+.availability-chip {
+    background: var(--primary-lt);
+    color: var(--primary);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
 /* ── MISC ───────────────────────────────────────── */
 .empty {
     text-align: center;
