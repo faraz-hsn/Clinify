@@ -13,7 +13,7 @@
 {% block content %}
 <div class="page-header">
     <h1>Appointment</h1>
-    <p><a href="{% url 'doctor_dashboard' %}">&larr; Back to calendar</a></p>
+    <p><a href="{% url 'doctor_dashboard' %}?month={{ appointment.1|date:"Y-m" }}&date={{ appointment.1|date:"Y-m-d" }}">&larr; Back to calendar</a></p>
 </div>
 
 {% if appointment %}

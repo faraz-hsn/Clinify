@@ -380,7 +380,7 @@ tbody tr:hover { background: var(--bg); }
 .badge-scheduled { background: #e8f4f9; color: var(--primary); }
 .badge-completed  { background: #e6f7f2; color: var(--accent); }
 .badge-cancelled  { background: #fdecea; color: var(--danger); }
-.badge-noshow     { background: #fff3e6; color: var(--warn); }
+.badge-no-show    { background: #fff3e6; color: var(--warn); }
 .badge-patient    { background: #e8f4f9; color: var(--primary); }
 .badge-doctor     { background: #e6f7f2; color: var(--accent); }
 .badge-admin      { background: #f3eeff; color: #7c5cbf; }
