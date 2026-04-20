@@ -4,11 +4,11 @@
 
 {% block nav %}
 <span class="nav-label">Menu</span>
-<a href="{% url 'admin_dashboard' %}" class="nav-link active"><span class="icon">⊞</span> Dashboard</a>
-<a href="{% url 'admin_appointments' %}" class="nav-link"><span class="icon">📅</span> Appointments</a>
-<a href="{% url 'admin_users' %}" class="nav-link"><span class="icon">👥</span> Users</a>
-<a href="{% url 'admin_medications' %}" class="nav-link"><span class="icon">💊</span> Medications</a>
-<a href="{% url 'admin_create_admin' %}" class="nav-link"><span class="icon">➕</span> Create Admin</a>
+<a href="{% url 'admin_dashboard' %}" class="nav-link active"><i data-lucide="layout-grid"></i><span>Dashboard</span></a>
+<a href="{% url 'admin_appointments' %}" class="nav-link"><i data-lucide="calendar-days"></i><span>Appointments</span></a>
+<a href="{% url 'admin_users' %}" class="nav-link"><i data-lucide="users"></i><span>Users</span></a>
+<a href="{% url 'admin_medications' %}" class="nav-link"><i data-lucide="pill"></i><span>Medications</span></a>
+<a href="{% url 'admin_create_admin' %}" class="nav-link"><i data-lucide="user-plus"></i><span>Create Admin</span></a>
 {% endblock %}
 
 {% block content %}

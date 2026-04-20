@@ -5,21 +5,11 @@
 
 {% block nav %}
 <span class="nav-label">Menu</span>
-<a href="{% url 'patient_dashboard' %}" class="nav-link">
-    <span class="icon">⊞</span> Dashboard
-</a>
-<a href="{% url 'patient_appointments' %}" class="nav-link">
-    <span class="icon">📅</span> Appointments
-</a>
-<a href="{% url 'patient_medical_history' %}" class="nav-link">
-    <span class="icon">📋</span> Medical History
-</a>
-<a href="{% url 'patient_prescriptions' %}" class="nav-link">
-    <span class="icon">💊</span> Prescriptions
-</a>
-<a href="{% url 'patient_profile' %}" class="nav-link active">
-    <span class="icon">👤</span> Profile
-</a>
+<a href="{% url 'patient_dashboard' %}" class="nav-link"><i data-lucide="layout-grid"></i><span>Dashboard</span></a>
+<a href="{% url 'patient_appointments' %}" class="nav-link"><i data-lucide="calendar-days"></i><span>Appointments</span></a>
+<a href="{% url 'patient_medical_history' %}" class="nav-link"><i data-lucide="clipboard-list"></i><span>Medical History</span></a>
+<a href="{% url 'patient_prescriptions' %}" class="nav-link"><i data-lucide="pill"></i><span>Prescriptions</span></a>
+<a href="{% url 'patient_profile' %}" class="nav-link active"><i data-lucide="user-round"></i><span>Profile</span></a>
 {% endblock %}
 
 {% block content %}
@@ -28,11 +18,6 @@
     <p>View and update your information.</p>
 </div>
 
-{% if not profile_complete %}
-<div class="alert alert-error" style="margin-bottom:16px;">
-    Your profile is incomplete. Please fill in your date of birth to start booking appointments.
-</div>
-{% endif %}
 
 <div class="card">
     {% if profile %}

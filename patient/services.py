@@ -1,5 +1,3 @@
-import datetime
-
 from common.db import db_cursor
 from common.phone import normalize_phone
 
@@ -35,8 +33,38 @@ def cancel_appointment(patient_id, appointment_id):
         cur.execute('SELECT cancel_appointment(%s)', (appointment_id,))
 
 
+def _assert_slot_available(cur, doctor_id, date, time):
+    cur.execute(
+        '''SELECT 1 FROM availability
+           WHERE doctor_id = %s AND availability_date = %s
+             AND start_time <= %s AND end_time >= %s''',
+        (doctor_id, date, time, time),
+    )
+    if not cur.fetchone():
+        raise ValueError('Doctor is not available at that time.')
+
+
 def reschedule_appointment(patient_id, appointment_id, new_date, new_time):
     with db_cursor(commit=True) as cur:
+        cur.execute(
+            '''SELECT doctor_id FROM appointment
+               WHERE appointment_id = %s AND patient_id = %s AND status = 'Scheduled' ''',
+            (appointment_id, patient_id),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise ValueError('Cannot reschedule this appointment.')
+        doctor_id = row[0]
+        _assert_slot_available(cur, doctor_id, new_date, new_time)
+        cur.execute(
+            '''SELECT 1 FROM appointment
+               WHERE doctor_id = %s AND appointment_date = %s
+                 AND appointment_time = %s AND status = 'Scheduled'
+                 AND appointment_id <> %s''',
+            (doctor_id, new_date, new_time, appointment_id),
+        )
+        if cur.fetchone():
+            raise ValueError('This time slot is already booked. Please choose another time.')
         cur.execute(
             '''UPDATE appointment SET appointment_date = %s, appointment_time = %s
                WHERE appointment_id = %s AND patient_id = %s AND status = 'Scheduled' ''',
@@ -45,16 +73,8 @@ def reschedule_appointment(patient_id, appointment_id, new_date, new_time):
 
 
 def book_appointment(patient_id, doctor_id, date, time, reason):
-    day_name = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%A')
     with db_cursor(commit=True) as cur:
-        cur.execute(
-            '''SELECT 1 FROM availability
-               WHERE doctor_id = %s AND day_of_week = %s
-                 AND start_time <= %s AND end_time >= %s''',
-            (doctor_id, day_name, time, time),
-        )
-        if not cur.fetchone():
-            raise ValueError('Doctor is not available at that time.')
+        _assert_slot_available(cur, doctor_id, date, time)
 
         cur.execute(
             '''SELECT 1 FROM appointment

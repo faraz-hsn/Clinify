@@ -23,20 +23,18 @@ def patient_dashboard(request):
         user = selectors.get_user_name(user_id)
         profile = selectors.get_profile(user_id)
         if not _profile_is_complete(profile):
-            messages.info(
+            messages.error(
                 request,
                 'Please complete your profile before booking appointments.',
             )
             return redirect('patient_profile')
         appointments = selectors.list_recent_appointments(user_id)
-        next_appt = selectors.get_next_scheduled_appointment(user_id)
     except Exception as e:
         messages.error(request, f'Error: {e}')
-        user, appointments, next_appt = None, [], None
+        user, appointments = None, []
     return render(request, 'patient/dashboard.html', {
         'user': user,
         'appointments': appointments,
-        'next_appt': next_appt,
         'today': datetime.date.today().strftime('%A, %B %d, %Y'),
     })
 
@@ -76,7 +74,7 @@ def patient_appointments(request):
 
     try:
         if not _profile_is_complete(selectors.get_profile(user_id)):
-            messages.info(
+            messages.error(
                 request,
                 'Please complete your profile before booking appointments.',
             )

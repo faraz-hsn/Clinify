@@ -133,17 +133,12 @@ CREATE TABLE CONTAINS (
 );
 
 CREATE TABLE AVAILABILITY (
-    Doctor_ID   INT         NOT NULL,
-    Day_Of_Week VARCHAR(15) NOT NULL,
-    Start_Time  TIME        NOT NULL,
-    End_Time    TIME        NOT NULL,
-    PRIMARY KEY (Doctor_ID, Day_Of_Week, Start_Time),
-    CONSTRAINT chk_day_of_week
-        CHECK (Day_Of_Week IN (
-            'Monday','Tuesday','Wednesday',
-            'Thursday','Friday','Saturday','Sunday'
-        )),
-    CONSTRAINT chk_time_window
+    Doctor_ID         INT  NOT NULL,
+    Availability_Date DATE NOT NULL,
+    Start_Time        TIME NOT NULL,
+    End_Time          TIME NOT NULL,
+    PRIMARY KEY (Doctor_ID, Availability_Date, Start_Time),
+    CONSTRAINT chk_availability_time_window
         CHECK (Start_Time < End_Time),
     CONSTRAINT fk_availability_doctor
         FOREIGN KEY (Doctor_ID) REFERENCES DOCTOR(Doctor_ID)

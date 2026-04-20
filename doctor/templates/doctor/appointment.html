@@ -1,14 +1,13 @@
 {% extends 'base.html' %}
-{% load static %}
 {% block title %}Appointment{% endblock %}
 {% block role_label %}Doctor Portal{% endblock %}
 
 {% block nav %}
 <span class="nav-label">Menu</span>
-<a href="{% url 'doctor_dashboard' %}" class="nav-link"><span class="icon">📅</span> Calendar</a>
-<a href="{% url 'doctor_availability' %}" class="nav-link"><span class="icon">🕐</span> Availability</a>
-<a href="{% url 'doctor_prescriptions' %}" class="nav-link"><span class="icon">💊</span> Prescriptions</a>
-<a href="{% url 'doctor_profile' %}" class="nav-link"><span class="icon">👤</span> Profile</a>
+<a href="{% url 'doctor_dashboard' %}" class="nav-link"><i data-lucide="calendar-days"></i><span>Calendar</span></a>
+<a href="{% url 'doctor_availability' %}" class="nav-link"><i data-lucide="clock"></i><span>Availability</span></a>
+<a href="{% url 'doctor_prescriptions' %}" class="nav-link"><i data-lucide="pill"></i><span>Prescriptions</span></a>
+<a href="{% url 'doctor_profile' %}" class="nav-link"><i data-lucide="user-round"></i><span>Profile</span></a>
 {% endblock %}
 
 {% block content %}
@@ -70,31 +69,31 @@
 {% if visit %}
 <div class="card">
     <div class="card-title">Visit Summary</div>
-    <p style="font-size:12px;color:var(--muted); margin-bottom:16px;">Recorded on {{ visit.0|date:"M d, Y" }}</p>
-    <form method="POST">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="update_visit">
-        <div class="form-group">
-            <label>Diagnosis</label>
-            <input type="text" name="diagnosis" value="{{ visit.1|default_if_none:"" }}">
+    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:16px;">
+        <div>
+            <div style="font-size:12px;color:var(--muted);">VISIT DATE</div>
+            <div>{{ visit.0|date:"M d, Y" }}</div>
         </div>
-        <div class="form-group">
-            <label>Vitals</label>
-            <input type="text" name="vitals" value="{{ visit.2|default_if_none:"" }}">
+        <div>
+            <div style="font-size:12px;color:var(--muted);">DIAGNOSIS</div>
+            <div class="cell-wrap">{{ visit.1|default:"—" }}</div>
         </div>
-        <div class="form-group">
-            <label>Notes</label>
-            <textarea name="notes" rows="3">{{ visit.3|default_if_none:"" }}</textarea>
+        <div>
+            <div style="font-size:12px;color:var(--muted);">VITALS</div>
+            <div class="cell-wrap">{{ visit.2|default:"—" }}</div>
         </div>
-        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
-            <button type="submit" class="btn btn-success">Save Changes</button>
-            {% if prescription %}
-            <a href="{% url 'doctor_prescriptions' %}" class="btn btn-outline">Prescription Issued &rarr;</a>
-            {% else %}
-            <a href="{% url 'doctor_prescriptions' %}?visit_id={{ appointment.0 }}" class="btn btn-outline">Issue Prescription</a>
-            {% endif %}
+        <div>
+            <div style="font-size:12px;color:var(--muted);">NOTES</div>
+            <div class="cell-wrap">{{ visit.3|default:"—" }}</div>
         </div>
-    </form>
+    </div>
+    <div style="margin-top:16px;">
+        {% if prescription %}
+        <a href="{% url 'doctor_prescriptions' %}" class="btn btn-outline">Prescription Issued &rarr;</a>
+        {% else %}
+        <a href="{% url 'doctor_prescriptions' %}?visit_id={{ appointment.0 }}" class="btn btn-success">Issue Prescription</a>
+        {% endif %}
+    </div>
 </div>
 {% endif %}
 
@@ -124,8 +123,8 @@
 <div class="card">
     <div class="card-title">Other Actions</div>
     <div style="display:flex; gap:12px; flex-wrap:wrap;">
-        <button type="button" class="btn btn-outline" data-confirm="no_show">Mark No-Show</button>
-        <button type="button" class="btn btn-danger" data-confirm="cancel">Cancel Appointment</button>
+        <button type="button" class="btn btn-outline" onclick="openConfirm('no_show')">Mark No-Show</button>
+        <button type="button" class="btn btn-danger" onclick="openConfirm('cancel')">Cancel Appointment</button>
     </div>
 </div>
 
@@ -137,16 +136,45 @@
             {% csrf_token %}
             <input type="hidden" name="action" id="confirm-action">
             <div class="modal-actions">
-                <button type="button" class="btn btn-outline" data-close-modal="confirm-modal">Back</button>
+                <button type="button" class="btn btn-outline" onclick="closeConfirm()">Back</button>
                 <button type="submit" class="btn btn-danger" id="confirm-submit">Confirm</button>
             </div>
         </form>
     </div>
 </div>
-{% endif %}
-{% endif %}
-{% endblock %}
 
-{% block extra_js %}
-<script src="{% static 'js/doctor_appointment.js' %}"></script>
+<script>
+const CONFIRM_COPY = {
+    no_show: {
+        title: 'Mark as No-Show?',
+        body: 'The patient did not attend this appointment. This cannot be undone.',
+        submit: 'Mark No-Show',
+        submitClass: 'btn btn-outline',
+    },
+    cancel: {
+        title: 'Cancel Appointment?',
+        body: 'The appointment will be cancelled and the patient will be notified. This cannot be undone.',
+        submit: 'Cancel Appointment',
+        submitClass: 'btn btn-danger',
+    },
+};
+function openConfirm(action) {
+    const copy = CONFIRM_COPY[action];
+    document.getElementById('confirm-title').textContent = copy.title;
+    document.getElementById('confirm-body').textContent = copy.body;
+    document.getElementById('confirm-action').value = action;
+    const btn = document.getElementById('confirm-submit');
+    btn.textContent = copy.submit;
+    btn.className = copy.submitClass;
+    document.getElementById('confirm-modal').classList.add('open');
+}
+function closeConfirm() {
+    document.getElementById('confirm-modal').classList.remove('open');
+}
+document.getElementById('confirm-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeConfirm();
+});
+</script>
+{% endif %}
+{% endif %}
 {% endblock %}

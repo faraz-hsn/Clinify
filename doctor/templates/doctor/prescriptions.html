@@ -4,10 +4,10 @@
 
 {% block nav %}
 <span class="nav-label">Menu</span>
-<a href="{% url 'doctor_dashboard' %}" class="nav-link"><span class="icon">📅</span> Calendar</a>
-<a href="{% url 'doctor_availability' %}" class="nav-link"><span class="icon">🕐</span> Availability</a>
-<a href="{% url 'doctor_prescriptions' %}" class="nav-link active"><span class="icon">💊</span> Prescriptions</a>
-<a href="{% url 'doctor_profile' %}" class="nav-link"><span class="icon">👤</span> Profile</a>
+<a href="{% url 'doctor_dashboard' %}" class="nav-link"><i data-lucide="calendar-days"></i><span>Calendar</span></a>
+<a href="{% url 'doctor_availability' %}" class="nav-link"><i data-lucide="clock"></i><span>Availability</span></a>
+<a href="{% url 'doctor_prescriptions' %}" class="nav-link active"><i data-lucide="pill"></i><span>Prescriptions</span></a>
+<a href="{% url 'doctor_profile' %}" class="nav-link"><i data-lucide="user-round"></i><span>Profile</span></a>
 {% endblock %}
 
 {% block content %}
@@ -56,7 +56,7 @@
             </div>
         </div>
 
-        <button type="button" class="btn btn-outline btn-sm" data-action="add-med-row" style="margin-bottom:16px;">+ Add Medication</button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="addMedRow()" style="margin-bottom:16px;">+ Add Medication</button>
         <br>
         <button type="submit" class="btn btn-success">Create Prescription</button>
     </form>

@@ -1,25 +1,14 @@
 {% extends 'base.html' %}
-{% load static %}
 {% block title %}Appointments{% endblock %}
 {% block role_label %}Admin Panel{% endblock %}
 
 {% block nav %}
 <span class="nav-label">Menu</span>
-<a href="{% url 'admin_dashboard' %}" class="nav-link">
-    <span class="icon">⊞</span> Dashboard
-</a>
-<a href="{% url 'admin_appointments' %}" class="nav-link active">
-    <span class="icon">📅</span> Appointments
-</a>
-<a href="{% url 'admin_users' %}" class="nav-link">
-    <span class="icon">👥</span> Users
-</a>
-<a href="{% url 'admin_medications' %}" class="nav-link">
-    <span class="icon">💊</span> Medications
-</a>
-<a href="{% url 'admin_create_admin' %}" class="nav-link">
-    <span class="icon">➕</span> Create Admin
-</a>
+<a href="{% url 'admin_dashboard' %}" class="nav-link"><i data-lucide="layout-grid"></i><span>Dashboard</span></a>
+<a href="{% url 'admin_appointments' %}" class="nav-link active"><i data-lucide="calendar-days"></i><span>Appointments</span></a>
+<a href="{% url 'admin_users' %}" class="nav-link"><i data-lucide="users"></i><span>Users</span></a>
+<a href="{% url 'admin_medications' %}" class="nav-link"><i data-lucide="pill"></i><span>Medications</span></a>
+<a href="{% url 'admin_create_admin' %}" class="nav-link"><i data-lucide="user-plus"></i><span>Create Admin</span></a>
 {% endblock %}
 
 {% block content %}
@@ -64,7 +53,7 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="appointment_id" value="{{ a.0 }}">
                                 <input type="hidden" name="action" value="update_status">
-                                <select name="status" data-auto-submit style="padding:5px 8px; border-radius:6px; border:1px solid var(--border); font-size:13px;">
+                                <select name="status" onchange="this.form.submit()" style="padding:5px 8px; border-radius:6px; border:1px solid var(--border); font-size:13px;">
                                     <option value="">Update</option>
                                     <option value="Completed">Completed</option>
                                     <option value="No-Show">No-Show</option>
@@ -84,8 +73,4 @@
     <div class="empty">No appointments found.</div>
     {% endif %}
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'js/form_auto_submit.js' %}"></script>
 {% endblock %}

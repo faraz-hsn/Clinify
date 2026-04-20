@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clinify – {% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="layout">
@@ -43,6 +44,6 @@
 
 </div>
 <script src="{% static 'js/script.js' %}"></script>
-{% block extra_js %}{% endblock %}
+<script>lucide.createIcons();</script>
 </body>
 </html>
