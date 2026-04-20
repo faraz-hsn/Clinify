@@ -76,6 +76,23 @@ def mark_no_show(doctor_id, appointment_id):
         )
 
 
+def update_visit(doctor_id, appointment_id, diagnosis, vitals, notes):
+    with db_cursor(commit=True) as cur:
+        cur.execute(
+            '''SELECT 1 FROM visit v
+               JOIN appointment a ON v.appointment_id = a.appointment_id
+               WHERE v.appointment_id = %s AND a.doctor_id = %s''',
+            (appointment_id, doctor_id),
+        )
+        if not cur.fetchone():
+            raise ValueError('Visit not found.')
+        cur.execute(
+            '''UPDATE visit SET diagnosis = %s, vitals = %s, visit_notes = %s
+               WHERE appointment_id = %s''',
+            (diagnosis, vitals, notes, appointment_id),
+        )
+
+
 def create_prescription(doctor_id, visit_id, medication_ids, frequencies, durations):
     with db_cursor(commit=True) as cur:
         cur.execute('SELECT create_prescription(%s, %s)', (visit_id, doctor_id))

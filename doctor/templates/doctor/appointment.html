@@ -69,31 +69,31 @@
 {% if visit %}
 <div class="card">
     <div class="card-title">Visit Summary</div>
-    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:16px;">
-        <div>
-            <div style="font-size:12px;color:var(--muted);">VISIT DATE</div>
-            <div>{{ visit.0|date:"M d, Y" }}</div>
+    <p style="font-size:12px;color:var(--muted); margin-bottom:16px;">Recorded on {{ visit.0|date:"M d, Y" }}</p>
+    <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_visit">
+        <div class="form-group">
+            <label>Diagnosis</label>
+            <input type="text" name="diagnosis" value="{{ visit.1|default_if_none:"" }}">
         </div>
-        <div>
-            <div style="font-size:12px;color:var(--muted);">DIAGNOSIS</div>
-            <div class="cell-wrap">{{ visit.1|default:"—" }}</div>
+        <div class="form-group">
+            <label>Vitals</label>
+            <input type="text" name="vitals" value="{{ visit.2|default_if_none:"" }}">
         </div>
-        <div>
-            <div style="font-size:12px;color:var(--muted);">VITALS</div>
-            <div class="cell-wrap">{{ visit.2|default:"—" }}</div>
+        <div class="form-group">
+            <label>Notes</label>
+            <textarea name="notes" rows="3">{{ visit.3|default_if_none:"" }}</textarea>
         </div>
-        <div>
-            <div style="font-size:12px;color:var(--muted);">NOTES</div>
-            <div class="cell-wrap">{{ visit.3|default:"—" }}</div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+            <button type="submit" class="btn btn-success">Save Changes</button>
+            {% if prescription %}
+            <a href="{% url 'doctor_prescriptions' %}" class="btn btn-outline">Prescription Issued &rarr;</a>
+            {% else %}
+            <a href="{% url 'doctor_prescriptions' %}?visit_id={{ appointment.0 }}" class="btn btn-outline">Issue Prescription</a>
+            {% endif %}
         </div>
-    </div>
-    <div style="margin-top:16px;">
-        {% if prescription %}
-        <a href="{% url 'doctor_prescriptions' %}" class="btn btn-outline">Prescription Issued &rarr;</a>
-        {% else %}
-        <a href="{% url 'doctor_prescriptions' %}?visit_id={{ appointment.0 }}" class="btn btn-success">Issue Prescription</a>
-        {% endif %}
-    </div>
+    </form>
 </div>
 {% endif %}
 

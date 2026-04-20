@@ -16,6 +16,8 @@
     --sidebar-w:  240px;
 }
 
+html { scrollbar-gutter: stable; }
+
 body {
     font-family: 'DM Sans', sans-serif;
     background: var(--bg);
@@ -88,6 +90,7 @@ body {
     background: #fff;
     transition: border-color .2s;
     outline: none;
+    resize: none;
 }
 
 .form-group input:focus,
@@ -330,7 +333,7 @@ tbody td {
 
 .day-table-wrap {
     max-height: 480px;
-    overflow-y: auto;
+    overflow: auto;
     scrollbar-gutter: stable;
 }
 
@@ -527,12 +530,13 @@ a { color: var(--primary); text-decoration: none; }
 .calendar-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
     gap: 20px;
 }
 @media (max-width: 1200px) {
     .calendar-grid { grid-template-columns: 1fr; }
 }
-.calendar-card { padding: 20px; }
+.calendar-card { padding: 20px; min-width: 0; }
 .calendar-header {
     display: flex;
     align-items: center;

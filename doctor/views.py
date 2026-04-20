@@ -195,6 +195,15 @@ def doctor_appointment(request, appointment_id):
                     request.POST.get('notes'),
                 )
                 messages.success(request, 'Visit recorded.')
+            elif action == 'update_visit':
+                services.update_visit(
+                    user_id,
+                    appointment_id,
+                    request.POST.get('diagnosis'),
+                    request.POST.get('vitals'),
+                    request.POST.get('notes'),
+                )
+                messages.success(request, 'Visit updated.')
             elif action == 'cancel':
                 services.cancel_appointment(user_id, appointment_id)
                 messages.success(request, 'Appointment cancelled.')
