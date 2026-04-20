@@ -59,7 +59,7 @@
                     <tr>
                         <td>{{ s.1|time:"g:i A" }}</td>
                         <td>{{ s.4 }}</td>
-                        <td>{{ s.3 }}</td>
+                        <td class="cell-wrap">{{ s.3 }}</td>
                         <td><span class="badge badge-{{ s.2|lower }}">{{ s.2 }}</span></td>
                         <td><a href="{% url 'doctor_patient_record' patient_id=s.5 %}" class="btn btn-outline btn-sm">View Record</a></td>
                     </tr>
@@ -87,7 +87,7 @@
                     <td>{{ a.0|date:"D, M j" }}</td>
                     <td>{{ a.1|time:"g:i A" }}</td>
                     <td>{{ a.4 }}</td>
-                    <td>{{ a.3 }}</td>
+                    <td class="cell-wrap">{{ a.3 }}</td>
                     <td><span class="badge badge-{{ a.2|lower }}">{{ a.2 }}</span></td>
                     <td><a href="{% url 'doctor_patient_record' patient_id=a.5 %}" class="btn btn-outline btn-sm">View Record</a></td>
                 </tr>

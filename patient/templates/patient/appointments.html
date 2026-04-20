@@ -56,7 +56,8 @@
 
         <div class="form-group">
             <label>Reason</label>
-            <input type="text" name="reason" placeholder="Brief reason for visit">
+            <input type="text" name="reason" id="reason-input" maxlength="100" placeholder="Brief reason for visit">
+            <div class="char-counter"><span id="reason-count">0</span>/100</div>
         </div>
         <button type="submit" class="btn btn-primary">Book Appointment</button>
     </form>
@@ -227,5 +228,13 @@ function openReschedule(id) {
 function closeReschedule() {
     document.getElementById('reschedule-modal').classList.remove('open');
 }
+
+(function() {
+    var input = document.getElementById('reason-input');
+    var count = document.getElementById('reason-count');
+    input.addEventListener('input', function() {
+        count.textContent = input.value.length;
+    });
+})();
 </script>
 {% endblock %}
