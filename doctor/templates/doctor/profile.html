@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load phone_tags %}
 {% block title %}Profile{% endblock %}
 {% block role_label %}Doctor Portal{% endblock %}
 
@@ -48,7 +49,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label>Phone</label>
-                <input type="tel" name="phone" value="{{ profile.3|default:'' }}" placeholder="(403) 000-0000">
+                <input type="tel" name="phone" value="{{ profile.3|format_phone }}" placeholder="(403) 000-0000">
             </div>
             <div class="form-group">
                 <label>Specialty</label>

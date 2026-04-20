@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load phone_tags %}
 {% block title %}Profile{% endblock %}
 {% block role_label %}Patient Portal{% endblock %}
 
@@ -53,7 +54,7 @@
         </div>
         <div class="form-group">
             <label>Phone</label>
-            <input type="tel" name="phone" value="{{ profile.3|default:'' }}" placeholder="(403) 000-0000">
+            <input type="tel" name="phone" value="{{ profile.3|format_phone }}" placeholder="(403) 000-0000">
         </div>
         <div class="form-row">
             <div class="form-group">
@@ -81,7 +82,7 @@
             </div>
             <div class="form-group">
                 <label>Emergency Contact Phone</label>
-                <input type="tel" name="emergency_contact_phone" value="{{ profile.8|default:'' }}" placeholder="(403) 000-0000">
+                <input type="tel" name="emergency_contact_phone" value="{{ profile.8|format_phone }}" placeholder="(403) 000-0000">
             </div>
         </div>
         <button type="submit" class="btn btn-primary">Save Changes</button>

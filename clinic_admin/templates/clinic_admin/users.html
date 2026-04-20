@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load phone_tags %}
 {% block title %}Users{% endblock %}
 {% block role_label %}Admin Panel{% endblock %}
 
@@ -45,11 +46,11 @@
                 <tr>
                     <td>{{ u.1 }} {{ u.2 }}</td>
                     <td>{{ u.3 }}</td>
-                    <td>{{ u.4|default:"—" }}</td>
+                    <td>{{ u.4|format_phone|default:"—" }}</td>
                     <td><span class="badge badge-{{ u.5 }}">{{ u.5|capfirst }}</span></td>
                     <td style="display:flex; gap:6px;">
                         <button class="btn btn-outline btn-sm"
-                            onclick="openEdit('{{ u.0 }}','{{ u.1 }}','{{ u.2 }}','{{ u.4 }}','{{ u.5 }}')">
+                            onclick="openEdit('{{ u.0 }}','{{ u.1 }}','{{ u.2 }}','{{ u.4|format_phone }}','{{ u.5 }}')">
                             Edit
                         </button>
                         <form method="POST">

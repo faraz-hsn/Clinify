@@ -23,6 +23,18 @@ function addMedRow() {
     list.appendChild(clone);
 }
 
+document.addEventListener('input', function (e) {
+    const el = e.target;
+    if (!(el instanceof HTMLInputElement) || el.type !== 'tel') return;
+
+    const digits = el.value.replace(/\D/g, '').slice(0, 10);
+    let formatted = digits;
+    if (digits.length > 6)      formatted = `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+    else if (digits.length > 3) formatted = `(${digits.slice(0,3)}) ${digits.slice(3)}`;
+    else if (digits.length > 0) formatted = `(${digits}`;
+    el.value = formatted;
+});
+
 // auto dismiss alerts after 4 seconds
 document.addEventListener('DOMContentLoaded', function () {
     const alerts = document.querySelectorAll('.alert');
