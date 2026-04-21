@@ -1,3 +1,5 @@
+import datetime
+
 from common.db import db_cursor
 from common.phone import normalize_phone
 
@@ -34,11 +36,12 @@ def cancel_appointment(patient_id, appointment_id):
 
 
 def _assert_slot_available(cur, doctor_id, date, time):
+    day_name = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%A')
     cur.execute(
         '''SELECT 1 FROM availability
-           WHERE doctor_id = %s AND availability_date = %s
+           WHERE doctor_id = %s AND day_of_week = %s
              AND start_time <= %s AND end_time >= %s''',
-        (doctor_id, date, time, time),
+        (doctor_id, day_name, time, time),
     )
     if not cur.fetchone():
         raise ValueError('Doctor is not available at that time.')

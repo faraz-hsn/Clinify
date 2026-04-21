@@ -98,9 +98,13 @@ def get_last_visit(patient_id):
 def list_availability(doctor_id):
     with db_cursor() as cur:
         cur.execute(
-            '''SELECT availability_date, start_time, end_time FROM availability
+            '''SELECT day_of_week, start_time, end_time FROM availability
                WHERE doctor_id = %s
-               ORDER BY availability_date, start_time''',
+               ORDER BY CASE day_of_week
+                   WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3
+                   WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 WHEN 'Saturday' THEN 6
+                   WHEN 'Sunday' THEN 7
+               END''',
             (doctor_id,),
         )
         return cur.fetchall()

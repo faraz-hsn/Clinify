@@ -15,27 +15,21 @@ def update_profile(doctor_id, phone, specialty):
         )
 
 
-def add_availability(doctor_id, availability_dates, start_time, end_time):
-    """Insert one time window for each calendar date in availability_dates (YYYY-MM-DD strings)."""
-    if not availability_dates:
-        raise ValueError('Select at least one date.')
+def add_availability(doctor_id, day_of_week, start_time, end_time):
     with db_cursor(commit=True) as cur:
-        for av_date in availability_dates:
-            if not av_date:
-                continue
-            cur.execute(
-                'INSERT INTO availability (doctor_id, availability_date, start_time, end_time) '
-                'VALUES (%s, %s, %s, %s)',
-                (doctor_id, av_date, start_time, end_time),
-            )
+        cur.execute(
+            'INSERT INTO availability (doctor_id, day_of_week, start_time, end_time) '
+            'VALUES (%s, %s, %s, %s)',
+            (doctor_id, day_of_week, start_time, end_time),
+        )
 
 
-def delete_availability(doctor_id, availability_date, start_time):
+def delete_availability(doctor_id, day_of_week, start_time):
     with db_cursor(commit=True) as cur:
         cur.execute(
             'DELETE FROM availability '
-            'WHERE doctor_id = %s AND availability_date = %s AND start_time = %s',
-            (doctor_id, availability_date, start_time),
+            'WHERE doctor_id = %s AND day_of_week = %s AND start_time = %s',
+            (doctor_id, day_of_week, start_time),
         )
 
 
@@ -79,6 +73,23 @@ def mark_no_show(doctor_id, appointment_id):
         cur.execute(
             "UPDATE appointment SET status = 'No-Show' WHERE appointment_id = %s",
             (int(appointment_id),),
+        )
+
+
+def update_visit(doctor_id, appointment_id, diagnosis, vitals, notes):
+    with db_cursor(commit=True) as cur:
+        cur.execute(
+            '''SELECT 1 FROM visit v
+               JOIN appointment a ON v.appointment_id = a.appointment_id
+               WHERE v.appointment_id = %s AND a.doctor_id = %s''',
+            (appointment_id, doctor_id),
+        )
+        if not cur.fetchone():
+            raise ValueError('Visit not found.')
+        cur.execute(
+            '''UPDATE visit SET diagnosis = %s, vitals = %s, visit_notes = %s
+               WHERE appointment_id = %s''',
+            (diagnosis, vitals, notes, appointment_id),
         )
 
 

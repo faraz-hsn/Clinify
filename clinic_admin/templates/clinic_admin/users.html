@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load phone_tags %}
 {% block title %}Users{% endblock %}
 {% block role_label %}Admin Panel{% endblock %}
@@ -39,19 +40,21 @@
                     <td>{{ u.4|format_phone|default:"—" }}</td>
                     <td><span class="badge badge-{{ u.5 }}">{{ u.5|capfirst }}</span></td>
                     <td style="display:flex; gap:6px;">
-                        <button class="btn btn-outline btn-sm"
-                            onclick="openEdit('{{ u.0 }}','{{ u.1 }}','{{ u.2 }}','{{ u.4|format_phone }}','{{ u.5 }}')">
+                        <button type="button" class="btn btn-outline btn-sm"
+                                data-action="edit-user"
+                                data-user-id="{{ u.0 }}"
+                                data-first-name="{{ u.1 }}"
+                                data-last-name="{{ u.2 }}"
+                                data-phone="{{ u.4|format_phone }}"
+                                data-role="{{ u.5 }}">
                             Edit
                         </button>
-                        <form method="POST">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="delete">
-                            <input type="hidden" name="user_id" value="{{ u.0 }}">
-                            <button type="submit" class="btn btn-danger btn-sm"
-                                onclick="return confirm('Delete this user?')">
-                                Delete
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-danger btn-sm"
+                                data-action="delete-user"
+                                data-user-id="{{ u.0 }}"
+                                data-name="{{ u.1 }} {{ u.2 }}">
+                            Delete
+                        </button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -94,24 +97,31 @@
                 </select>
             </div>
             <div class="modal-actions">
-                <button type="button" class="btn btn-outline" onclick="closeEdit()">Cancel</button>
+                <button type="button" class="btn btn-outline" data-close-modal="edit-modal">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save</button>
             </div>
         </form>
     </div>
 </div>
 
-<script>
-function openEdit(id, first, last, phone, role) {
-    document.getElementById('edit-user-id').value = id;
-    document.getElementById('edit-first').value   = first;
-    document.getElementById('edit-last').value    = last;
-    document.getElementById('edit-phone').value   = phone === 'None' ? '' : phone;
-    document.getElementById('edit-role').value    = role;
-    document.getElementById('edit-modal').classList.add('open');
-}
-function closeEdit() {
-    document.getElementById('edit-modal').classList.remove('open');
-}
-</script>
+<!-- DELETE MODAL -->
+<div class="modal-backdrop" id="delete-modal">
+    <div class="modal">
+        <h3>Delete User?</h3>
+        <p id="delete-body" style="color:var(--muted); margin:0;"></p>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="user_id" id="delete-user-id">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" data-close-modal="delete-modal">Back</button>
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/admin_users.js' %}"></script>
 {% endblock %}

@@ -1,4 +1,16 @@
-// add medication row in doctor prescriptions
+document.addEventListener('click', function (e) {
+    var addBtn = e.target.closest('[data-action="add-med-row"]');
+    if (addBtn) {
+        addMedRow();
+        return;
+    }
+    var removeBtn = e.target.closest('[data-action="remove-med-row"]');
+    if (removeBtn) {
+        var row = removeBtn.closest('.med-row');
+        if (row) row.remove();
+    }
+});
+
 function addMedRow() {
     const list = document.getElementById('med-list');
     if (!list) return;
@@ -15,8 +27,8 @@ function addMedRow() {
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'btn btn-danger btn-sm';
+    removeBtn.dataset.action = 'remove-med-row';
     removeBtn.textContent = 'Remove';
-    removeBtn.onclick = () => clone.remove();
     removeGroup.appendChild(removeBtn);
     clone.appendChild(removeGroup);
 

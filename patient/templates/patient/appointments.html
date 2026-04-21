@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Appointments{% endblock %}
 {% block role_label %}Patient Portal{% endblock %}
 
@@ -13,7 +14,7 @@
 
 {% block content %}
 
-<div id="availability-data" data-json="{{ availability_json }}" style="display:none;"></div>
+<div id="availability-data" data-json="{{ availability_json }}" hidden></div>
 
 <div class="page-header">
     <h1>Appointments</h1>
@@ -34,9 +35,9 @@
             </select>
         </div>
 
-        <div id="availability-info" style="display:none; margin-bottom:16px;">
+        <div id="availability-info" hidden style="margin-bottom:16px;">
             <div style="font-size:13px; font-weight:600; color:var(--muted); margin-bottom:8px;">
-                UPCOMING AVAILABLE DATES — click a date to fill the form (times follow each doctor’s slots for that date)
+                UPCOMING AVAILABLE DATES — click to select
             </div>
             <div id="availability-list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
         </div>
@@ -74,20 +75,23 @@
             <tbody>
                 {% for a in appointments %}
                 <tr>
-                    <td>{{ a.1|date:"M d, Y" }}</td>
-                    <td>{{ a.2|time:"g:i A" }}</td>
-                    <td>Dr. {{ a.5 }}</td>
+                    <td style="white-space:nowrap;">{{ a.1|date:"M d, Y" }}</td>
+                    <td style="white-space:nowrap;">{{ a.2|time:"g:i A" }}</td>
+                    <td style="white-space:nowrap;">Dr. {{ a.5 }}</td>
                     <td>{{ a.4 }}</td>
                     <td><span class="badge badge-{{ a.3|lower }}">{{ a.3 }}</span></td>
                     <td>
                         {% if a.3 == 'Scheduled' %}
-                        <div style="display:flex; gap:6px;">
-                            <form method="POST">
-                                {% csrf_token %}
-                                <input type="hidden" name="cancel_id" value="{{ a.0 }}">
-                                <button type="submit" name="action" value="cancel" class="btn btn-danger btn-sm">Cancel</button>
-                            </form>
-                            <button class="btn btn-outline btn-sm" onclick="openReschedule('{{ a.0 }}')">Reschedule</button>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-outline btn-sm"
+                                    data-action="reschedule"
+                                    data-appointment-id="{{ a.0 }}"
+                                    data-doctor-id="{{ a.6 }}">Reschedule</button>
+                            <button type="button" class="btn btn-danger btn-sm"
+                                    data-action="cancel-appt"
+                                    data-appointment-id="{{ a.0 }}"
+                                    data-date="{{ a.1|date:"M d, Y" }}"
+                                    data-time="{{ a.2|time:"g:i A" }}">Cancel</button>
                         </div>
                         {% else %}
                         —
@@ -106,116 +110,49 @@
 <div class="modal-backdrop" id="reschedule-modal">
     <div class="modal">
         <h3>Reschedule Appointment</h3>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
-            Check the doctor's available slots above before selecting a new date.
+        <p style="font-size:13px;color:var(--muted);margin:0 0 16px;">
+            Pick a new date — only times the doctor is available will appear.
         </p>
         <form method="POST">
             {% csrf_token %}
             <input type="hidden" name="action" value="reschedule">
             <input type="hidden" name="appointment_id" id="reschedule-id">
+            <input type="hidden" id="reschedule-doctor-id">
             <div class="form-group">
                 <label>New Date</label>
-                <input type="date" name="new_date" required>
+                <input type="date" name="new_date" id="reschedule-date" required>
             </div>
             <div class="form-group">
                 <label>New Time</label>
-                <input type="time" name="new_time" required>
+                <select name="new_time" id="reschedule-time" required>
+                    <option value="">Select a date first</option>
+                </select>
             </div>
             <div class="modal-actions">
-                <button type="button" class="btn btn-outline" onclick="closeReschedule()">Cancel</button>
+                <button type="button" class="btn btn-outline" data-close-modal="reschedule-modal">Back</button>
                 <button type="submit" class="btn btn-primary">Confirm</button>
             </div>
         </form>
     </div>
 </div>
 
-<script>
-var availabilityData = JSON.parse(
-    document.getElementById('availability-data').getAttribute('data-json')
-);
+<div class="modal-backdrop" id="cancel-modal">
+    <div class="modal">
+        <h3>Cancel Appointment?</h3>
+        <p id="cancel-body" style="color:var(--muted); margin:0;"></p>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="cancel">
+            <input type="hidden" name="cancel_id" id="cancel-id">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" data-close-modal="cancel-modal">Keep It</button>
+                <button type="submit" class="btn btn-danger">Cancel Appointment</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
 
-function formatSlotChip(dateStr) {
-    var d = new Date(dateStr + 'T12:00:00');
-    var weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
-    var cal = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    return weekday + ', ' + cal;
-}
-
-document.getElementById('doctor-select').addEventListener('change', function() {
-    var doctorId = this.value;
-    var infoDiv  = document.getElementById('availability-info');
-    var listDiv  = document.getElementById('availability-list');
-
-    if (!doctorId || !availabilityData[doctorId]) {
-        infoDiv.style.display = 'none';
-        return;
-    }
-
-    var slots = availabilityData[doctorId];
-    var seen = {};
-    var html  = '';
-    slots.forEach(function(s) {
-        var key = s.date + '|' + s.start + '|' + s.end;
-        if (seen[key]) return;
-        seen[key] = true;
-        var label = formatSlotChip(s.date) + ' · ' + s.start + '–' + s.end;
-        html += '<span style="background:var(--primary-lt);color:var(--primary);' +
-                'padding:4px 12px;border-radius:20px;font-size:13px;cursor:pointer;" ' +
-                'onclick="fillDate(\'' + s.date + '\')">' +
-                label + '</span>';
-    });
-    listDiv.innerHTML = html;
-    infoDiv.style.display = html ? 'block' : 'none';
-    updateTimeSlots();
-});
-
-document.getElementById('date-input').addEventListener('change', updateTimeSlots);
-
-function fillDate(dateStr) {
-    document.getElementById('date-input').value = dateStr;
-    updateTimeSlots();
-}
-
-function updateTimeSlots() {
-    var doctorId   = document.getElementById('doctor-select').value;
-    var dateInput  = document.getElementById('date-input').value;
-    var timeSelect = document.getElementById('time-select');
-    timeSelect.innerHTML = '<option value="">Select a time</option>';
-    if (!doctorId || !dateInput || !availabilityData[doctorId]) return;
-    var slots = availabilityData[doctorId].filter(function(s) { return s.date === dateInput; });
-    if (slots.length === 0) {
-        timeSelect.innerHTML = '<option value="">Doctor not available on this date</option>';
-        return;
-    }
-    slots.forEach(function(slot) {
-        var current = slot.start;
-        while (current < slot.end) {
-            var opt = document.createElement('option');
-            opt.value = current;
-            opt.textContent = current;
-            timeSelect.appendChild(opt);
-            var parts = current.split(':').map(Number);
-            var next  = new Date(0,0,0,parts[0],parts[1]+30);
-            current   = String(next.getHours()).padStart(2,'0') + ':' + String(next.getMinutes()).padStart(2,'0');
-        }
-    });
-}
-
-function openReschedule(id) {
-    document.getElementById('reschedule-id').value = id;
-    document.getElementById('reschedule-modal').classList.add('open');
-}
-
-function closeReschedule() {
-    document.getElementById('reschedule-modal').classList.remove('open');
-}
-
-(function() {
-    var input = document.getElementById('reason-input');
-    var count = document.getElementById('reason-count');
-    input.addEventListener('input', function() {
-        count.textContent = input.value.length;
-    });
-})();
-</script>
+{% block extra_js %}
+<script src="{% static 'js/patient_appointments.js' %}"></script>
 {% endblock %}

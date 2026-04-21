@@ -12,10 +12,35 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>Welcome, {% if user %}{{ user.0 }} {{ user.1 }}{% endif %}</h1>
-    <p>{{ today }}</p>
+<div class="page-header" style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+    <div>
+        <h1>Welcome, {% if user %}{{ user.0 }} {{ user.1 }}{% endif %}</h1>
+        <p>{{ today }}</p>
+    </div>
+    <a href="{% url 'patient_appointments' %}" class="btn btn-primary">Book Appointment</a>
 </div>
+
+{% if next_appt %}
+<div class="card" style="border-left:4px solid var(--primary);">
+    <div style="font-size:12px; color:var(--muted); letter-spacing:.5px; font-weight:600;">NEXT APPOINTMENT</div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-top:12px;">
+        <div>
+            <div style="font-size:12px; color:var(--muted);">DATE &amp; TIME</div>
+            <div style="font-weight:600;">{{ next_appt.1|date:"l, M j" }}</div>
+            <div>{{ next_appt.2|time:"g:i A" }}</div>
+        </div>
+        <div>
+            <div style="font-size:12px; color:var(--muted);">DOCTOR</div>
+            <div>Dr. {{ next_appt.4 }}</div>
+            <div style="font-size:12px; color:var(--muted);">{{ next_appt.5|default:"" }}</div>
+        </div>
+        <div style="min-width:0;">
+            <div style="font-size:12px; color:var(--muted);">REASON</div>
+            <div style="overflow-wrap:break-word;">{{ next_appt.3|default:"—" }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="card">
     <div class="card-title">Recent Appointments</div>
@@ -28,9 +53,9 @@
             <tbody>
                 {% for a in appointments %}
                 <tr>
-                    <td>{{ a.1|date:"M d, Y" }}</td>
-                    <td>{{ a.2|time:"g:i A" }}</td>
-                    <td>Dr. {{ a.5 }}</td>
+                    <td style="white-space:nowrap;">{{ a.1|date:"M d, Y" }}</td>
+                    <td style="white-space:nowrap;">{{ a.2|time:"g:i A" }}</td>
+                    <td style="white-space:nowrap;">Dr. {{ a.5 }}</td>
                     <td>{{ a.4 }}</td>
                     <td><span class="badge badge-{{ a.3|lower }}">{{ a.3 }}</span></td>
                 </tr>

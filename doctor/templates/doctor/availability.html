@@ -13,80 +13,38 @@
 {% block content %}
 <div class="page-header">
     <h1>Manage Availability</h1>
-    <p>Choose the month, then select days on the calendar table. Your picks are kept while you change months.</p>
+    <p>Set the days and times you are available for appointments.</p>
 </div>
 
 <div class="card">
     <div class="card-title">Add Availability</div>
-    <form method="POST" id="add-availability-form">
+    <form method="POST">
         {% csrf_token %}
         <input type="hidden" name="action" value="add">
-        <div id="availability-dates-hidden" aria-hidden="true"></div>
-        <div class="form-group">
-            <label>Calendar</label>
-            <p style="font-size:13px;color:var(--muted);margin:0 0 14px 0;">
-                Selectable days: <strong>{{ today|date:"M j, Y" }}</strong> — <strong>{{ calendar_end|date:"M j, Y" }}</strong>
-                ({{ calendar_range_days }} days). Month navigation reloads the grid from the server.
-            </p>
-            <div
-                id="availability-calendar"
-                class="avail-picker"
-                data-range-start="{{ today|date:'Y-m-d' }}"
-                data-range-end="{{ calendar_end|date:'Y-m-d' }}"
-                data-avail-url="{% url 'doctor_availability' %}"
-            >
-                <div class="avail-picker-step">
-                    <span class="avail-picker-step-label">1 · Choose month</span>
-                    <div class="avail-picker-month-row">
-                        {% if prev_disabled %}
-                        <span class="avail-picker-nav" aria-disabled="true" style="opacity:.35;cursor:not-allowed;">&larr;</span>
-                        {% else %}
-                        <a href="{% url 'doctor_availability' %}?year={{ prev_year }}&month={{ prev_month }}" class="avail-picker-nav" aria-label="Previous month">&larr;</a>
-                        {% endif %}
-                        <input
-                            type="month"
-                            class="avail-picker-month-input"
-                            id="avail-cal-month-input"
-                            autocomplete="off"
-                            min="{{ today|date:'Y-m' }}"
-                            max="{{ calendar_end|date:'Y-m' }}"
-                            value="{{ cal_year }}-{{ cal_month|stringformat:'02d' }}"
-                            title="Choose month (reloads calendar)"
-                        >
-                        {% if next_disabled %}
-                        <span class="avail-picker-nav" aria-disabled="true" style="opacity:.35;cursor:not-allowed;">&rarr;</span>
-                        {% else %}
-                        <a href="{% url 'doctor_availability' %}?year={{ next_year }}&month={{ next_month }}" class="avail-picker-nav" aria-label="Next month">&rarr;</a>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="avail-picker-step">
-                    <span class="avail-picker-step-label">2 · Choose day(s) <span class="sub">— standard month table (Mon–Sun)</span></span>
-                    <div class="avail-picker-calendar-frame" id="availability-cal-host">
-                        {{ calendar_html }}
-                    </div>
-                </div>
-
-                <div class="avail-picker-toolbar">
-                    <span class="avail-picker-count" id="avail-cal-count">No dates selected</span>
-                    <button type="button" class="btn btn-outline btn-sm" id="avail-cal-clear">Clear</button>
-                    <button type="button" class="btn btn-outline btn-sm" id="avail-cal-month">All days this month</button>
-                </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Day</label>
+                <select name="day_of_week" required>
+                    <option value="">Select day</option>
+                    <option>Monday</option>
+                    <option>Tuesday</option>
+                    <option>Wednesday</option>
+                    <option>Thursday</option>
+                    <option>Friday</option>
+                    <option>Saturday</option>
+                    <option>Sunday</option>
+                </select>
             </div>
-        </div>
-        <div class="form-row" style="align-items:flex-end;">
             <div class="form-group">
                 <label>Start Time</label>
                 <input type="time" name="start_time" required>
-            </div><br>
+            </div>
             <div class="form-group">
                 <label>End Time</label>
                 <input type="time" name="end_time" required>
             </div>
         </div>
-
-        <button type="submit" class="btn btn-success">Add for selected dates</button>
+        <button type="submit" class="btn btn-success">Add</button>
     </form>
 </div>
 
@@ -96,20 +54,19 @@
     <div class="table-wrap">
         <table>
             <thead>
-                <tr><th>Date</th><th>Day</th><th>Start</th><th>End</th><th>Action</th></tr>
+                <tr><th>Day</th><th>Start</th><th>End</th><th>Action</th></tr>
             </thead>
             <tbody>
                 {% for a in availability %}
                 <tr>
-                    <td>{{ a.0|date:"M j, Y" }}</td>
-                    <td>{{ a.0|date:"l" }}</td>
+                    <td>{{ a.0 }}</td>
                     <td>{{ a.1|time:"g:i A" }}</td>
                     <td>{{ a.2|time:"g:i A" }}</td>
                     <td>
                         <form method="POST">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="delete">
-                            <input type="hidden" name="availability_date" value="{{ a.0|date:'Y-m-d' }}">
+                            <input type="hidden" name="day_of_week" value="{{ a.0 }}">
                             <input type="hidden" name="start_time" value="{{ a.1|time:'H:i' }}">
                             <button type="submit" class="btn btn-danger btn-sm">Remove</button>
                         </form>
@@ -123,107 +80,4 @@
     <div class="empty">No availability set yet.</div>
     {% endif %}
 </div>
-
-<script>
-(function() {
-    var STORAGE_KEY = 'clinify_doctor_avail_selected_v1';
-    var root = document.getElementById('availability-calendar');
-    var form = document.getElementById('add-availability-form');
-    var host = document.getElementById('availability-cal-host');
-    var monthInput = document.getElementById('avail-cal-month-input');
-    var countEl = document.getElementById('avail-cal-count');
-    var hiddenWrap = document.getElementById('availability-dates-hidden');
-    if (!root || !form || !host || !monthInput) return;
-
-    var baseUrl = root.getAttribute('data-avail-url') || '';
-
-    function loadSet() {
-        try {
-            var raw = sessionStorage.getItem(STORAGE_KEY);
-            if (!raw) return new Set();
-            var arr = JSON.parse(raw);
-            return new Set(Array.isArray(arr) ? arr : []);
-        } catch (e) {
-            return new Set();
-        }
-    }
-
-    var selected = loadSet();
-
-    function saveSet() {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(selected).sort()));
-    }
-
-    function updateCount() {
-        var n = selected.size;
-        if (n === 0) countEl.textContent = 'No dates selected';
-        else if (n === 1) countEl.textContent = '1 date selected';
-        else countEl.textContent = n + ' dates selected';
-    }
-
-    function applyDomFromSet() {
-        host.querySelectorAll('.availability-cal-day').forEach(function(btn) {
-            var iso = btn.getAttribute('data-iso');
-            btn.classList.toggle('availability-cal-day--selected', selected.has(iso));
-        });
-    }
-
-    host.addEventListener('click', function(ev) {
-        var btn = ev.target.closest('.availability-cal-day');
-        if (!btn) return;
-        var iso = btn.getAttribute('data-iso');
-        if (!iso) return;
-        if (selected.has(iso)) selected.delete(iso);
-        else selected.add(iso);
-        saveSet();
-        applyDomFromSet();
-        updateCount();
-    });
-
-    monthInput.addEventListener('change', function() {
-        var v = monthInput.value;
-        if (!v || !baseUrl) return;
-        var parts = v.split('-');
-        var y = parseInt(parts[0], 10);
-        var m = parseInt(parts[1], 10);
-        window.location.href = baseUrl + '?year=' + y + '&month=' + m;
-    });
-
-    document.getElementById('avail-cal-clear').addEventListener('click', function() {
-        selected.clear();
-        saveSet();
-        applyDomFromSet();
-        updateCount();
-    });
-
-    document.getElementById('avail-cal-month').addEventListener('click', function() {
-        host.querySelectorAll('.availability-cal-day').forEach(function(btn) {
-            var iso = btn.getAttribute('data-iso');
-            if (iso) selected.add(iso);
-        });
-        saveSet();
-        applyDomFromSet();
-        updateCount();
-    });
-
-    form.addEventListener('submit', function(ev) {
-        hiddenWrap.innerHTML = '';
-        if (selected.size === 0) {
-            ev.preventDefault();
-            alert('Please select at least one day on the calendar.');
-            return;
-        }
-        Array.from(selected).sort().forEach(function(iso) {
-            var inp = document.createElement('input');
-            inp.type = 'hidden';
-            inp.name = 'availability_dates';
-            inp.value = iso;
-            hiddenWrap.appendChild(inp);
-        });
-    });
-
-    applyDomFromSet();
-    updateCount();
-})();
-</script>
 {% endblock %}

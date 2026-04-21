@@ -29,12 +29,14 @@ def patient_dashboard(request):
             )
             return redirect('patient_profile')
         appointments = selectors.list_recent_appointments(user_id)
+        next_appt = selectors.get_next_scheduled_appointment(user_id)
     except Exception as e:
         messages.error(request, f'Error: {e}')
-        user, appointments = None, []
+        user, appointments, next_appt = None, [], None
     return render(request, 'patient/dashboard.html', {
         'user': user,
         'appointments': appointments,
+        'next_appt': next_appt,
         'today': datetime.date.today().strftime('%A, %B %d, %Y'),
     })
 

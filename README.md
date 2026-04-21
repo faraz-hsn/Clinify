@@ -54,13 +54,19 @@ Each feature app is split into `urls.py` → `views.py` (thin, HTTP only) → `s
 
 ## Test Accounts
 
-All seed accounts use the password `password`.
+All seed accounts use the password `password`. Staff accounts (doctors and admins) must use the `@clinify.com` domain.
 
-| Email                     | Role    |
-| ------------------------- | ------- |
-| `alex.johnson@email.com`  | Patient |
-| `sarah.lee@email.com`     | Patient |
-| `michael.brown@email.com` | Patient |
-| `rose.smith@email.com`    | Doctor  |
-| `james.wilson@email.com`  | Doctor  |
-| `sara.admin@email.com`    | Admin   |
+| Email                           | Role    | Notes                 |
+| ------------------------------- | ------- | --------------------- |
+| `alex.johnson@email.com`        | Patient |                       |
+| `sarah.lee@email.com`           | Patient |                       |
+| `michael.brown@email.com`       | Patient |                       |
+| `emma.davis@email.com`          | Patient |                       |
+| `liam.martinez@email.com`       | Patient |                       |
+| `olivia.chen@email.com`         | Patient |                       |
+| `rose.smith@clinify.com`        | Doctor  | Family Medicine       |
+| `james.wilson@clinify.com`      | Doctor  | Cardiology            |
+| `priya.patel@clinify.com`       | Doctor  | Pediatrics            |
+| `marcus.thompson@clinify.com`   | Doctor  | Dermatology           |
+| `sara.admin@clinify.com`        | Admin   |                       |
+| `david.reyes@clinify.com`       | Admin   |                       |

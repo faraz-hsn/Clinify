@@ -1,17 +1,14 @@
 import calendar
 import datetime
 
-import psycopg2
 from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.utils import timezone
-from django.utils.safestring import mark_safe
 
 from common.decorators import login_required_custom
 from common.session import get_user_from_session
 
 from . import selectors, services
-from .availability_html_calendar import AvailabilityHTMLCalendar
 
 
 def _profile_is_complete(profile):
@@ -125,62 +122,24 @@ def doctor_profile(request):
     })
 
 
-AVAILABILITY_CALENDAR_RANGE_DAYS = 120
-
-
-def _shift_calendar_month(year, month, delta):
-    month += delta
-    while month > 12:
-        month -= 12
-        year += 1
-    while month < 1:
-        month += 12
-        year -= 1
-    return year, month
-
-
-def _availability_calendar_month_from_request(request, today, calendar_end):
-    try:
-        y = int(request.GET.get('year', today.year))
-        m = int(request.GET.get('month', today.month))
-        datetime.date(y, m, 1)
-    except (ValueError, TypeError):
-        y, m = today.year, today.month
-    min_ym = (today.year, today.month)
-    max_ym = (calendar_end.year, calendar_end.month)
-    if (y, m) < min_ym:
-        y, m = min_ym
-    elif (y, m) > max_ym:
-        y, m = max_ym
-    return y, m
-
-
 @login_required_custom(role='doctor')
 def doctor_availability(request):
     user_id, _ = get_user_from_session(request)
-    today = timezone.localdate()
     if request.method == 'POST':
         action = request.POST.get('action')
         try:
             if action == 'add':
-                try:
-                    services.add_availability(
-                        user_id,
-                        request.POST.getlist('availability_dates'),
-                        request.POST.get('start_time'),
-                        request.POST.get('end_time'),
-                    )
-                except psycopg2.IntegrityError:
-                    messages.error(
-                        request,
-                        'One or more rows already exist for that date and start time.',
-                    )
-                else:
-                    messages.success(request, 'Availability added.')
+                services.add_availability(
+                    user_id,
+                    request.POST.get('day_of_week'),
+                    request.POST.get('start_time'),
+                    request.POST.get('end_time'),
+                )
+                messages.success(request, 'Availability added.')
             elif action == 'delete':
                 services.delete_availability(
                     user_id,
-                    request.POST.get('availability_date'),
+                    request.POST.get('day_of_week'),
                     request.POST.get('start_time'),
                 )
                 messages.success(request, 'Availability removed.')
@@ -193,38 +152,7 @@ def doctor_availability(request):
     except Exception as e:
         messages.error(request, f'Error: {e}')
         availability = []
-    calendar_end = today + datetime.timedelta(days=AVAILABILITY_CALENDAR_RANGE_DAYS - 1)
-    cal_year, cal_month = _availability_calendar_month_from_request(
-        request, today, calendar_end,
-    )
-
-    prev_y, prev_m = _shift_calendar_month(cal_year, cal_month, -1)
-    next_y, next_m = _shift_calendar_month(cal_year, cal_month, 1)
-    prev_disabled = (prev_y, prev_m) < (today.year, today.month)
-    next_disabled = (next_y, next_m) > (calendar_end.year, calendar_end.month)
-
-    cal = AvailabilityHTMLCalendar(
-        range_start=today,
-        range_end=calendar_end,
-        today=today,
-    )
-    calendar_html = mark_safe(cal.formatmonth(cal_year, cal_month))
-
-    return render(request, 'doctor/availability.html', {
-        'availability': availability,
-        'today': today,
-        'calendar_end': calendar_end,
-        'calendar_range_days': AVAILABILITY_CALENDAR_RANGE_DAYS,
-        'cal_year': cal_year,
-        'cal_month': cal_month,
-        'calendar_html': calendar_html,
-        'prev_year': prev_y,
-        'prev_month': prev_m,
-        'prev_disabled': prev_disabled,
-        'next_year': next_y,
-        'next_month': next_m,
-        'next_disabled': next_disabled,
-    })
+    return render(request, 'doctor/availability.html', {'availability': availability})
 
 
 @login_required_custom(role='doctor')
@@ -267,6 +195,15 @@ def doctor_appointment(request, appointment_id):
                     request.POST.get('notes'),
                 )
                 messages.success(request, 'Visit recorded.')
+            elif action == 'update_visit':
+                services.update_visit(
+                    user_id,
+                    appointment_id,
+                    request.POST.get('diagnosis'),
+                    request.POST.get('vitals'),
+                    request.POST.get('notes'),
+                )
+                messages.success(request, 'Visit updated.')
             elif action == 'cancel':
                 services.cancel_appointment(user_id, appointment_id)
                 messages.success(request, 'Appointment cancelled.')

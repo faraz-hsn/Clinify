@@ -15,15 +15,38 @@ def list_recent_appointments(patient_id, limit=5):
         cur.execute(
             '''SELECT a.appointment_id, a.appointment_date, a.appointment_time,
                       a.status, a.reason,
-                      u.first_name || ' ' || u.last_name AS doctor_name
+                      u.first_name || ' ' || u.last_name AS doctor_name,
+                      a.doctor_id
                FROM appointment a
                JOIN doctor d ON a.doctor_id = d.doctor_id
                JOIN "USER" u ON d.doctor_id = u.user_id
                WHERE a.patient_id = %s
-               ORDER BY a.appointment_date DESC LIMIT %s''',
+               ORDER BY a.appointment_date DESC, a.appointment_time DESC
+               LIMIT %s''',
             (patient_id, limit),
         )
         return cur.fetchall()
+
+
+def get_next_scheduled_appointment(patient_id):
+    with db_cursor() as cur:
+        cur.execute(
+            '''SELECT a.appointment_id, a.appointment_date, a.appointment_time,
+                      a.reason,
+                      u.first_name || ' ' || u.last_name AS doctor_name,
+                      d.specialty
+               FROM appointment a
+               JOIN doctor d ON a.doctor_id = d.doctor_id
+               JOIN "USER" u ON d.doctor_id = u.user_id
+               WHERE a.patient_id = %s
+                 AND a.status = 'Scheduled'
+                 AND (a.appointment_date > CURRENT_DATE
+                      OR (a.appointment_date = CURRENT_DATE AND a.appointment_time >= CURRENT_TIME))
+               ORDER BY a.appointment_date ASC, a.appointment_time ASC
+               LIMIT 1''',
+            (patient_id,),
+        )
+        return cur.fetchone()
 
 
 def list_all_appointments(patient_id):
@@ -31,11 +54,13 @@ def list_all_appointments(patient_id):
         cur.execute(
             '''SELECT a.appointment_id, a.appointment_date, a.appointment_time,
                       a.status, a.reason,
-                      u.first_name || ' ' || u.last_name AS doctor_name
+                      u.first_name || ' ' || u.last_name AS doctor_name,
+                      a.doctor_id
                FROM appointment a
                JOIN doctor d ON a.doctor_id = d.doctor_id
                JOIN "USER" u ON d.doctor_id = u.user_id
-               WHERE a.patient_id = %s ORDER BY a.appointment_date DESC''',
+               WHERE a.patient_id = %s
+               ORDER BY a.appointment_date DESC, a.appointment_time DESC''',
             (patient_id,),
         )
         return cur.fetchall()
@@ -51,21 +76,17 @@ def list_doctors():
 
 
 def availability_map():
-    """Return {doctor_id: [{date, start, end}, ...]} for the appointments form."""
+    """Return {doctor_id: [{day, start, end}, ...]} for the appointments form."""
     with db_cursor() as cur:
         cur.execute(
-            '''SELECT doctor_id, availability_date, start_time, end_time
-               FROM availability
-               WHERE availability_date >= CURRENT_DATE
-               ORDER BY doctor_id, availability_date, start_time'''
+            'SELECT doctor_id, day_of_week, start_time, end_time '
+            'FROM availability ORDER BY doctor_id'
         )
         rows = cur.fetchall()
     out = {}
-    for doctor_id, av_date, start, end in rows:
+    for doctor_id, day, start, end in rows:
         out.setdefault(str(doctor_id), []).append({
-            'date': str(av_date),
-            'start': str(start)[:5],
-            'end': str(end)[:5],
+            'day': day, 'start': str(start)[:5], 'end': str(end)[:5],
         })
     return out
 
