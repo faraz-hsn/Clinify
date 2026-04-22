@@ -1,3 +1,5 @@
+import psycopg2
+
 from common.db import db_cursor
 from common.phone import normalize_phone
 
@@ -148,12 +150,75 @@ def update_visit(doctor_id, appointment_id, diagnosis, vitals, notes):
 
 
 def create_prescription(doctor_id, visit_id, medication_ids, frequencies, durations):
-    with db_cursor(commit=True) as cur:
-        cur.execute('SELECT create_prescription(%s, %s)', (visit_id, doctor_id))
-        prescription_id = cur.fetchone()[0]
-        for med_id, freq, dur in zip(medication_ids, frequencies, durations):
+    visit_id = (visit_id or '').strip()
+    if not visit_id:
+        raise ValueError('Please select a visit.')
+    try:
+        visit_id_int = int(visit_id)
+    except ValueError:
+        raise ValueError('Invalid visit selection. Please try again.') from None
+
+    medication_ids = medication_ids or []
+    frequencies = frequencies or []
+    durations = durations or []
+    if not (len(medication_ids) == len(frequencies) == len(durations)):
+        raise ValueError('Invalid form submission. Please try again.')
+
+    rows = []
+    for med_id, freq, dur in zip(medication_ids, frequencies, durations):
+        med_id = (str(med_id).strip() if med_id is not None else '')
+        freq = (freq or '').strip()
+        dur = (dur or '').strip()
+
+        if not med_id and not freq and not dur:
+            continue
+        if not med_id:
+            raise ValueError('Please select a medication for each row.')
+        if not freq or not dur:
+            raise ValueError('Please enter a frequency and duration for each medication.')
+        if len(freq) > 100 or len(dur) > 100:
+            raise ValueError('Frequency and duration must be 100 characters or less.')
+
+        try:
+            med_id_int = int(med_id)
+        except ValueError:
+            raise ValueError('Invalid medication selection. Please try again.') from None
+
+        rows.append((med_id_int, freq, dur))
+
+    if not rows:
+        raise ValueError('Please add at least one medication.')
+
+    med_ids = [r[0] for r in rows]
+    if len(set(med_ids)) != len(med_ids):
+        raise ValueError('Please don’t select the same medication more than once.')
+
+    try:
+        with db_cursor(commit=True) as cur:
             cur.execute(
-                'INSERT INTO contains VALUES (%s, %s, %s, %s)',
-                (prescription_id, med_id, freq, dur),
+                'SELECT medication_id FROM medication WHERE medication_id = ANY(%s)',
+                (med_ids,),
             )
-    return prescription_id
+            existing = {r[0] for r in cur.fetchall()}
+            missing = [str(m) for m in med_ids if m not in existing]
+            if missing:
+                raise ValueError('One or more selected medications are invalid. Please re-select.')
+
+            cur.execute('SELECT create_prescription(%s, %s)', (visit_id_int, doctor_id))
+            prescription_id = cur.fetchone()[0]
+
+            for med_id_int, freq, dur in rows:
+                cur.execute(
+                    'INSERT INTO contains VALUES (%s, %s, %s, %s)',
+                    (prescription_id, med_id_int, freq, dur),
+                )
+        return prescription_id
+    except ValueError:
+        raise
+    except psycopg2.Error as e:
+        primary = getattr(getattr(e, 'diag', None), 'message_primary', None) or str(e)
+        if 'Only the assigned doctor can prescribe for a completed visit.' in primary:
+            raise ValueError('You can only prescribe for your own completed visits.') from None
+        if 'A prescription already exists for this visit.' in primary:
+            raise ValueError('A prescription already exists for this visit.') from None
+        raise ValueError('Could not create the prescription. Please review the form and try again.') from None

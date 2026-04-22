@@ -4,6 +4,7 @@ import json
 
 from django.contrib import messages
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
 from common.decorators import login_required_custom
@@ -290,16 +291,21 @@ def doctor_prescriptions(request):
             messages.success(request, 'Prescription created.')
             if return_to_appointment and visit_id:
                 return redirect('doctor_appointment', appointment_id=visit_id)
-        except Exception as e:
-            messages.error(request, f'Error: {e}')
-        return redirect('doctor_prescriptions')
+        except ValueError as e:
+            messages.error(request, str(e))
+        except Exception:
+            messages.error(request, 'Something went wrong while creating the prescription. Please try again.')
+        url = reverse('doctor_prescriptions')
+        if visit_id:
+            url += f'?visit_id={visit_id}'
+        return redirect(url)
 
     try:
         prescriptions = selectors.list_prescriptions(user_id)
         medications = selectors.list_medications()
         visits = selectors.list_visits_for_prescriptions(user_id)
     except Exception as e:
-        messages.error(request, f'Error: {e}')
+        messages.error(request, 'Could not load prescriptions. Please try again.')
         prescriptions, medications, visits = [], [], []
 
     return render(request, 'doctor/prescriptions.html', {

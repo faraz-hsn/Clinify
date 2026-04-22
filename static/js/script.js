@@ -20,6 +20,7 @@ function addMedRow() {
 
     const clone = first.cloneNode(true);
     clone.querySelectorAll('input').forEach(i => i.value = '');
+    clone.querySelectorAll('select').forEach(s => { s.selectedIndex = 0; });
 
     const removeGroup = document.createElement('div');
     removeGroup.className = 'form-group';

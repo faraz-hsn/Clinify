@@ -185,7 +185,10 @@ def list_visits_for_prescriptions(doctor_id):
                JOIN patient p ON v.patient_id = p.patient_id
                JOIN "USER" u ON p.patient_id = u.user_id
                JOIN appointment a ON v.appointment_id = a.appointment_id
-               WHERE a.doctor_id = %s''',
+               LEFT JOIN prescription pr ON pr.visit_id = v.appointment_id
+               WHERE a.doctor_id = %s
+                 AND pr.prescription_id IS NULL
+               ORDER BY v.visit_date DESC''',
             (doctor_id,),
         )
         return cur.fetchall()

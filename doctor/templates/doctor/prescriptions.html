@@ -41,7 +41,8 @@
             <div class="med-row form-row" style="margin-bottom:8px;">
                 <div class="form-group">
                     <label>Medication</label>
-                    <select name="medication_id">
+                    <select name="medication_id" required>
+                        <option value="">Select medication</option>
                         {% for m in medications %}
                         <option value="{{ m.0 }}">{{ m.1 }}</option>
                         {% endfor %}
@@ -49,11 +50,11 @@
                 </div>
                 <div class="form-group">
                     <label>Frequency</label>
-                    <input type="text" name="frequency" placeholder="e.g. Twice daily">
+                    <input type="text" name="frequency" placeholder="e.g. Twice daily" maxlength="100" required>
                 </div>
                 <div class="form-group">
                     <label>Duration</label>
-                    <input type="text" name="duration" placeholder="e.g. 5 days">
+                    <input type="text" name="duration" placeholder="e.g. 5 days" maxlength="100" required>
                 </div>
             </div>
         </div>
