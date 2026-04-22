@@ -9,16 +9,14 @@
     align-items: start;
 }
 .booking-grid--book {
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 1fr 360px;
+    grid-template-areas: "time date";
 }
-.booking-side {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-.booking-side .form-group:last-child { margin-bottom: 0; }
+.booking-grid--book .booking-time { grid-area: time; }
+.booking-grid--book .booking-date { grid-area: date; }
 @media (max-width: 780px) {
     .booking-grid { grid-template-columns: 1fr; }
+    .booking-grid--book { grid-template-areas: "date" "time"; }
 }
 
 /* ── Custom picker (doctor + date) ───────────────── */
@@ -227,6 +225,21 @@
     border-top: 1px dashed var(--border);
     font-size: 12px;
     color: var(--muted);
+}
+
+/* Inline calendar panel (booking) */
+.booking-date--calendar { margin-bottom: 0; }
+.cal-panel {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    background: #fff;
+}
+.cal-note {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 10px 8px 12px;
+    text-align: center;
 }
 .legend-avail {
     background: var(--primary-lt);

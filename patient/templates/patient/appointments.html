@@ -36,64 +36,57 @@
     <form method="POST" class="booking-form" id="booking-form" novalidate>
         {% csrf_token %}
 
-        <div class="booking-grid booking-grid--book">
-            <div class="booking-side">
-                <div class="form-group">
-                    <label for="doctor-trigger">Doctor</label>
-                    <div class="cp" id="doctor-picker">
-                        <input type="hidden" name="doctor_id" id="doctor-input" required>
-                        <button type="button" class="cp-btn" id="doctor-trigger" data-cp-trigger>
-                            <span class="cp-btn-text">
-                                <span class="cp-display">Select a doctor</span>
-                                <span class="cp-sub" hidden></span>
-                            </span>
-                            <i data-lucide="chevron-down" class="cp-icon"></i>
-                        </button>
-                        <div class="cp-pop cp-pop--list" hidden data-cp-pop>
-                            <div class="cp-list" id="doctor-options"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group booking-date">
-                    <label for="date-trigger">Date</label>
-                    <div class="cp" id="date-picker">
-                        <input type="hidden" name="date" id="date-input" required>
-                        <button type="button" class="cp-btn" id="date-trigger" data-cp-trigger disabled>
-                            <span class="cp-btn-text">
-                                <span class="cp-display">Select a doctor first</span>
-                            </span>
-                            <i data-lucide="calendar" class="cp-icon"></i>
-                        </button>
-                        <div class="cp-pop cp-pop--cal" hidden data-cp-pop>
-                            <div class="cal-head">
-                                <button type="button" class="cal-nav" data-cal-prev aria-label="Previous month">
-                                    <i data-lucide="chevron-left"></i>
-                                </button>
-                                <div class="cal-label" data-cal-label></div>
-                                <button type="button" class="cal-nav" data-cal-next aria-label="Next month">
-                                    <i data-lucide="chevron-right"></i>
-                                </button>
-                            </div>
-                            <div class="cal-weekdays">
-                                <span>S</span><span>M</span><span>T</span><span>W</span>
-                                <span>T</span><span>F</span><span>S</span>
-                            </div>
-                            <div class="cal-grid" data-cal-grid></div>
-                            <div class="cal-legend">
-                                <span class="legend-dot legend-avail"></span>Available
-                                <span class="legend-dot legend-off"></span>Unavailable
-                            </div>
-                        </div>
-                    </div>
+        <div class="form-group">
+            <label for="doctor-trigger">Doctor</label>
+            <div class="cp" id="doctor-picker">
+                <input type="hidden" name="doctor_id" id="doctor-input" required>
+                <button type="button" class="cp-btn" id="doctor-trigger" data-cp-trigger>
+                    <span class="cp-btn-text">
+                        <span class="cp-display">Select a doctor</span>
+                        <span class="cp-sub" hidden></span>
+                    </span>
+                    <i data-lucide="chevron-down" class="cp-icon"></i>
+                </button>
+                <div class="cp-pop cp-pop--list" hidden data-cp-pop>
+                    <div class="cp-list" id="doctor-options"></div>
                 </div>
             </div>
+        </div>
 
+        <div class="booking-grid booking-grid--book">
             <div class="form-group booking-time">
                 <label>Time</label>
                 <input type="hidden" name="time" id="time-input" required>
-                <div class="time-slot-grid" id="time-slot-grid" data-empty-message="Select a doctor and date to see available times.">
-                    <div class="time-slot-empty">Select a doctor and date to see available times.</div>
+                <div class="time-slot-grid" id="time-slot-grid"
+                     data-empty-doctor="Select a doctor to see available times."
+                     data-empty-date="Select a date to see available times.">
+                    <div class="time-slot-empty">Select a doctor to see available times.</div>
+                </div>
+            </div>
+
+            <div class="form-group booking-date booking-date--calendar">
+                <label>Date</label>
+                <div class="cal-panel" id="booking-calendar">
+                    <input type="hidden" name="date" id="date-input" required>
+                    <div class="cal-note" data-cal-note>Select a doctor to view available dates.</div>
+                    <div class="cal-head">
+                        <button type="button" class="cal-nav" data-cal-prev aria-label="Previous month">
+                            <i data-lucide="chevron-left"></i>
+                        </button>
+                        <div class="cal-label" data-cal-label></div>
+                        <button type="button" class="cal-nav" data-cal-next aria-label="Next month">
+                            <i data-lucide="chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="cal-weekdays">
+                        <span>S</span><span>M</span><span>T</span><span>W</span>
+                        <span>T</span><span>F</span><span>S</span>
+                    </div>
+                    <div class="cal-grid" data-cal-grid></div>
+                    <div class="cal-legend">
+                        <span class="legend-dot legend-avail"></span>Available
+                        <span class="legend-dot legend-off"></span>Unavailable
+                    </div>
                 </div>
             </div>
         </div>

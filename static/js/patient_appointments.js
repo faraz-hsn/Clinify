@@ -297,6 +297,147 @@
         };
     }
 
+    // ---- Inline booking calendar ----
+    function initInlineCalendar(rootId) {
+        var root = document.getElementById(rootId);
+        if (!root) return null;
+        var input = root.querySelector('input[type=hidden]');
+        var grid = root.querySelector('[data-cal-grid]');
+        var label = root.querySelector('[data-cal-label]');
+        var prev = root.querySelector('[data-cal-prev]');
+        var next = root.querySelector('[data-cal-next]');
+        var note = root.querySelector('[data-cal-note]');
+
+        var doctorId = null;
+        var viewDate = new Date();
+        viewDate.setDate(1);
+        viewDate.setHours(0, 0, 0, 0);
+
+        function hasOpenSlot(iso, weekday) {
+            var doc = availabilityData[doctorId];
+            if (!doc) return false;
+            var slots = (doc.slots || []).filter(function (s) { return s.day === weekday; });
+            if (!slots.length) return false;
+            var booked = ((doc.booked || {})[iso] || []).slice();
+            var now = new Date();
+            var isToday = iso === toISODate(now);
+            var nowMins = now.getHours() * 60 + now.getMinutes();
+            for (var i = 0; i < slots.length; i++) {
+                var s = parseTime(slots[i].start), e = parseTime(slots[i].end);
+                for (var m = s; m < e; m += SLOT_MINUTES) {
+                    if (booked.indexOf(fmtTime(m)) !== -1) continue;
+                    if (isToday && m <= nowMins) continue;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function canGo(dir) {
+            var today = startOfToday();
+            var maxMonth = new Date(today.getFullYear(), today.getMonth() + MAX_MONTHS_AHEAD, 1);
+            var minMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            var probe = new Date(viewDate);
+            probe.setMonth(probe.getMonth() + dir);
+            if (probe < minMonth) return false;
+            if (probe > maxMonth) return false;
+            return true;
+        }
+
+        function render() {
+            grid.innerHTML = '';
+            label.textContent = MONTHS[viewDate.getMonth()] + ' ' + viewDate.getFullYear();
+
+            if (note) note.hidden = !!doctorId;
+            prev.disabled = !doctorId || !canGo(-1);
+            next.disabled = !doctorId || !canGo(1);
+
+            var first = new Date(viewDate);
+            var startWd = first.getDay();
+            var daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+            var today = startOfToday();
+            var maxDate = new Date(today);
+            maxDate.setMonth(maxDate.getMonth() + MAX_MONTHS_AHEAD);
+
+            for (var i = 0; i < startWd; i++) {
+                var pad = document.createElement('span');
+                pad.className = 'cal-day cal-day--pad';
+                grid.appendChild(pad);
+            }
+
+            for (var d = 1; d <= daysInMonth; d++) {
+                var date = new Date(viewDate.getFullYear(), viewDate.getMonth(), d);
+                var iso = toISODate(date);
+                var weekday = DAYS[date.getDay()];
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'cal-day';
+                btn.textContent = String(d);
+                btn.dataset.date = iso;
+
+                var inPast = date < today;
+                var tooFar = date > maxDate;
+                var hasSlots = !inPast && !tooFar && doctorId && hasOpenSlot(iso, weekday);
+
+                if (iso === toISODate(new Date())) btn.classList.add('is-today');
+
+                if (!doctorId || inPast || tooFar) {
+                    btn.disabled = true;
+                    btn.classList.add('is-disabled');
+                } else if (!hasSlots) {
+                    btn.disabled = true;
+                    btn.classList.add('is-off');
+                    btn.title = 'Unavailable';
+                } else {
+                    btn.classList.add('is-avail');
+                }
+                if (input.value === iso) btn.classList.add('is-selected');
+                grid.appendChild(btn);
+            }
+        }
+
+        prev.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (prev.disabled) return;
+            viewDate.setMonth(viewDate.getMonth() - 1);
+            render();
+        });
+        next.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (next.disabled) return;
+            viewDate.setMonth(viewDate.getMonth() + 1);
+            render();
+        });
+
+        grid.addEventListener('click', function (e) {
+            var day = e.target.closest('.cal-day');
+            if (!day || day.disabled) return;
+            input.value = day.dataset.date;
+            grid.querySelectorAll('.cal-day.is-selected').forEach(function (b) {
+                b.classList.remove('is-selected');
+            });
+            day.classList.add('is-selected');
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        render();
+
+        return {
+            setDoctor: function (id) {
+                doctorId = id ? String(id) : null;
+                render();
+            },
+            reset: function () {
+                input.value = '';
+                viewDate = new Date();
+                viewDate.setDate(1);
+                viewDate.setHours(0, 0, 0, 0);
+                render();
+            },
+            render: render,
+        };
+    }
+
     // ---- Time slot grid ----
     function renderSlotGrid(opts) {
         var grid = opts.grid;
@@ -307,11 +448,16 @@
         hidden.value = '';
         grid.innerHTML = '';
 
-        var emptyMsg = grid.getAttribute('data-empty-message') ||
-            'Select a doctor and date first.';
+        var fallbackEmpty = grid.getAttribute('data-empty-message') || 'Select a doctor and date first.';
+        var emptyDoctor = grid.getAttribute('data-empty-doctor') || fallbackEmpty;
+        var emptyDate = grid.getAttribute('data-empty-date') || fallbackEmpty;
 
-        if (!doctorId || !dateStr || !availabilityData[doctorId]) {
-            grid.innerHTML = '<div class="time-slot-empty">' + emptyMsg + '</div>';
+        if (!doctorId || !availabilityData[doctorId]) {
+            grid.innerHTML = '<div class="time-slot-empty">' + emptyDoctor + '</div>';
+            return;
+        }
+        if (!dateStr) {
+            grid.innerHTML = '<div class="time-slot-empty">' + emptyDate + '</div>';
             return;
         }
 
@@ -418,10 +564,10 @@
     var slotGrid = document.getElementById('time-slot-grid');
     var bookingForm = document.getElementById('booking-form');
 
-    var datePicker = initDatePicker('date-picker');
+    var bookingCalendar = initInlineCalendar('booking-calendar');
     initDoctorPicker('doctor-picker', function (doctorId) {
-        datePicker.setDoctor(doctorId);
-        datePicker.reset();
+        bookingCalendar.setDoctor(doctorId);
+        bookingCalendar.reset();
         renderSlotGrid({
             grid: slotGrid, hiddenInput: timeInput,
             doctorId: doctorInput.value, dateStr: dateInput.value,
@@ -445,7 +591,7 @@
         }
         if (!dateInput.value) {
             e.preventDefault();
-            flashHint(document.getElementById('date-picker'), 'Please pick a date.');
+            flashHint(document.getElementById('booking-calendar'), 'Please pick a date.');
             return;
         }
         if (!timeInput.value) {
