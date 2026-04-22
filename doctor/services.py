@@ -50,41 +50,6 @@ def delete_availability(doctor_id, day_of_week, start_time):
         )
 
 
-def add_exception(doctor_id, exception_date, is_blocked, start_time, end_time, reason):
-    if not exception_date:
-        raise ValueError('Please select a date.')
-    if is_blocked:
-        start_time = None
-        end_time = None
-    else:
-        if not start_time or not end_time:
-            raise ValueError('Please pick both a start and end time for custom hours.')
-        if start_time >= end_time:
-            raise ValueError(
-                f'End time ({_fmt_time(end_time)}) must be after start time ({_fmt_time(start_time)}).'
-            )
-    with db_cursor(commit=True) as cur:
-        cur.execute(
-            '''INSERT INTO availability_exception
-                   (doctor_id, exception_date, is_blocked, start_time, end_time, reason)
-               VALUES (%s, %s, %s, %s, %s, %s)
-               ON CONFLICT (doctor_id, exception_date) DO UPDATE
-                   SET is_blocked = EXCLUDED.is_blocked,
-                       start_time = EXCLUDED.start_time,
-                       end_time   = EXCLUDED.end_time,
-                       reason     = EXCLUDED.reason''',
-            (doctor_id, exception_date, is_blocked, start_time, end_time, reason or None),
-        )
-
-
-def delete_exception(doctor_id, exception_id):
-    with db_cursor(commit=True) as cur:
-        cur.execute(
-            'DELETE FROM availability_exception WHERE exception_id = %s AND doctor_id = %s',
-            (exception_id, doctor_id),
-        )
-
-
 def record_visit(doctor_id, patient_id, appointment_id, diagnosis, vitals, notes):
     if not appointment_id:
         raise ValueError('Please select an appointment.')

@@ -76,33 +76,20 @@ def list_doctors():
 
 
 def availability_map():
-    """Return {doctor_id: {slots: [...], exceptions: {date: {...}}}}."""
+    """Return {doctor_id: {slots: [...]}}."""
     with db_cursor() as cur:
         cur.execute(
             'SELECT doctor_id, day_of_week, start_time, end_time '
             'FROM availability ORDER BY doctor_id'
         )
         slot_rows = cur.fetchall()
-        cur.execute(
-            '''SELECT doctor_id, exception_date, is_blocked, start_time, end_time
-               FROM availability_exception
-               WHERE exception_date >= CURRENT_DATE'''
-        )
-        exc_rows = cur.fetchall()
 
     out = {}
     for doctor_id, day, start, end in slot_rows:
-        entry = out.setdefault(str(doctor_id), {'slots': [], 'exceptions': {}})
+        entry = out.setdefault(str(doctor_id), {'slots': []})
         entry['slots'].append({
             'day': day, 'start': str(start)[:5], 'end': str(end)[:5],
         })
-    for doctor_id, date, is_blocked, start, end in exc_rows:
-        entry = out.setdefault(str(doctor_id), {'slots': [], 'exceptions': {}})
-        entry['exceptions'][date.isoformat()] = {
-            'is_blocked': bool(is_blocked),
-            'start': str(start)[:5] if start else None,
-            'end': str(end)[:5] if end else None,
-        }
     return out
 
 

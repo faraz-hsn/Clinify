@@ -19,7 +19,7 @@
 {% block content %}
 <div class="page-header">
     <h1>Availability</h1>
-    <p>Set your weekly hours. Add a schedule change when a specific day differs.</p>
+    <p>Set your weekly hours.</p>
 </div>
 
 <div class="card avail-card">
@@ -103,85 +103,6 @@
     </div>
 </div>
 
-<div class="card avail-card">
-    <div class="card-title">
-        <i data-lucide="calendar-clock" class="title-icon"></i>
-        Schedule Changes
-        <button type="button" class="btn btn-ghost btn-sm card-title-action" id="toggle-exception">
-            <i data-lucide="plus"></i> Add a change
-        </button>
-    </div>
-
-    <form method="POST" class="avail-composer exception-composer" id="exception-form" novalidate {% if exceptions %}hidden{% endif %}>
-        {% csrf_token %}
-        <input type="hidden" name="action" value="add_exception">
-        <input type="hidden" name="mode" id="ex-mode" value="block">
-        <div class="composer-row">
-            <div class="form-group composer-date">
-                <label>Date</label>
-                <input type="date" name="exception_date" id="exception-date" min="{{ today_iso }}" required>
-            </div>
-            <div class="form-group composer-hours">
-                <label>Hours <span class="form-optional">(empty = blocked)</span></label>
-                <div class="time-range">
-                    <div class="timepicker" data-timepicker>
-                        <input type="hidden" name="ex_start_time" id="ex-start">
-                        <button type="button" class="timepicker-btn" data-tp-trigger>
-                            <span data-tp-display>Start</span>
-                            <i data-lucide="clock" class="timepicker-icon"></i>
-                        </button>
-                    </div>
-                    <span class="time-range-sep">to</span>
-                    <div class="timepicker" data-timepicker>
-                        <input type="hidden" name="ex_end_time" id="ex-end">
-                        <button type="button" class="timepicker-btn" data-tp-trigger>
-                            <span data-tp-display>End</span>
-                            <i data-lucide="clock" class="timepicker-icon"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="field-hint" id="ex-hint" aria-live="polite"></div>
-            </div>
-            <div class="form-group composer-reason">
-                <label>Reason <span class="form-optional">(optional)</span></label>
-                <input type="text" name="reason" maxlength="200" placeholder="e.g. Conference">
-            </div>
-            <button type="submit" class="btn btn-primary composer-submit" id="exception-submit">
-                <i data-lucide="save"></i> Save
-            </button>
-        </div>
-    </form>
-
-    {% if exceptions %}
-    <ul class="exception-list">
-        {% for ex in exceptions %}
-        <li class="exception-item">
-            <div class="exception-info">
-                <div class="exception-date">{{ ex.1|date:"D, M j, Y" }}</div>
-                <div class="exception-meta">
-                    {% if ex.2 %}
-                    <span class="badge badge-cancelled">Blocked</span>
-                    {% else %}
-                    <span class="badge badge-scheduled">{{ ex.3|time:"g:i A" }} – {{ ex.4|time:"g:i A" }}</span>
-                    {% endif %}
-                    {% if ex.5 %}<span class="exception-reason">{{ ex.5 }}</span>{% endif %}
-                </div>
-            </div>
-            <form method="POST">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="delete_exception">
-                <input type="hidden" name="exception_id" value="{{ ex.0 }}">
-                <button type="submit" class="btn-icon" title="Remove exception" aria-label="Remove exception">
-                    <i data-lucide="trash-2"></i>
-                </button>
-            </form>
-        </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <div class="empty-inline">Nothing scheduled yet — your weekly hours apply every day.</div>
-    {% endif %}
-</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -365,34 +286,6 @@
         document.getElementById('weekly-hint'),
         document.getElementById('weekly-submit')
     );
-
-    var exStart = document.getElementById('ex-start');
-    var exEnd = document.getElementById('ex-end');
-    var exMode = document.getElementById('ex-mode');
-    var updateEx = wireRange(
-        exStart, exEnd,
-        document.getElementById('ex-hint'),
-        document.getElementById('exception-submit')
-    );
-    function syncMode() {
-        exMode.value = (exStart.value || exEnd.value) ? 'custom' : 'block';
-        updateEx();
-    }
-    exStart.addEventListener('change', syncMode);
-    exEnd.addEventListener('change', syncMode);
-    syncMode();
-
-    // ---- Exception form toggle ----
-    var exForm = document.getElementById('exception-form');
-    var exToggle = document.getElementById('toggle-exception');
-    if (exToggle && exForm) {
-        exToggle.addEventListener('click', function () {
-            exForm.hidden = !exForm.hidden;
-            if (!exForm.hidden) {
-                document.getElementById('exception-date').focus();
-            }
-        });
-    }
 })();
 </script>
 {% endblock %}

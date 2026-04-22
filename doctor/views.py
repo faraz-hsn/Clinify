@@ -154,34 +154,15 @@ def doctor_availability(request):
                     request.POST.get('start_time'),
                 )
                 messages.success(request, 'Time slot removed.')
-            elif action == 'add_exception':
-                mode = request.POST.get('mode')  # 'block' or 'custom'
-                services.add_exception(
-                    user_id,
-                    request.POST.get('exception_date'),
-                    mode == 'block',
-                    request.POST.get('ex_start_time') or None,
-                    request.POST.get('ex_end_time') or None,
-                    request.POST.get('reason'),
-                )
-                messages.success(request, 'Exception saved.')
-            elif action == 'delete_exception':
-                services.delete_exception(
-                    user_id, int(request.POST.get('exception_id'))
-                )
-                messages.success(request, 'Exception removed.')
         except Exception as e:
             messages.error(request, f'Error: {e}')
         return redirect('doctor_availability')
 
-    today = timezone.localdate()
     try:
         rows = selectors.list_availability(user_id)
-        exceptions = selectors.list_exceptions(user_id, from_date=today)
     except Exception as e:
         messages.error(request, f'Error: {e}')
         rows = []
-        exceptions = []
 
     schedule_by_day = {d: [] for d in DAYS}
     for day, start, end in rows:
@@ -193,8 +174,6 @@ def doctor_availability(request):
 
     return render(request, 'doctor/availability.html', {
         'weekly': weekly,
-        'exceptions': exceptions,
-        'today_iso': today.isoformat(),
         'days': DAYS,
     })
 

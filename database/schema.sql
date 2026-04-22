@@ -150,25 +150,6 @@ CREATE TABLE AVAILABILITY (
         ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE TABLE AVAILABILITY_EXCEPTION (
-    Exception_ID   SERIAL      PRIMARY KEY,
-    Doctor_ID      INT         NOT NULL,
-    Exception_Date DATE        NOT NULL,
-    Is_Blocked     BOOLEAN     NOT NULL DEFAULT TRUE,
-    Start_Time     TIME        NULL,
-    End_Time       TIME        NULL,
-    Reason         VARCHAR(200),
-    CONSTRAINT uq_exception_doctor_date UNIQUE (Doctor_ID, Exception_Date),
-    CONSTRAINT chk_exception_times CHECK (
-        Is_Blocked OR (
-            Start_Time IS NOT NULL AND End_Time IS NOT NULL AND Start_Time < End_Time
-        )
-    ),
-    CONSTRAINT fk_exception_doctor
-        FOREIGN KEY (Doctor_ID) REFERENCES DOCTOR(Doctor_ID)
-        ON DELETE CASCADE ON UPDATE CASCADE
-);
-
 -- =====================================================
 -- STORED PROCEDURES
 -- =====================================================
