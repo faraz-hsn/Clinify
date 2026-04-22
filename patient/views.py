@@ -121,9 +121,15 @@ def patient_appointments(request):
         messages.error(request, f'Error: {e}')
         doctors, appointments, availability_map = [], [], {}
 
+    doctors_json = json.dumps([
+        {'id': str(d[0]), 'name': f'Dr. {d[1]}', 'specialty': d[2]}
+        for d in doctors
+    ])
+
     return render(request, 'patient/appointments.html', {
         'appointments': appointments,
         'doctors': doctors,
+        'doctors_json': doctors_json,
         'availability_json': json.dumps(availability_map),
     })
 

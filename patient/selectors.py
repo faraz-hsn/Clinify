@@ -76,20 +76,32 @@ def list_doctors():
 
 
 def availability_map():
-    """Return {doctor_id: {slots: [...]}}."""
+    """Return {doctor_id: {slots: [...], booked: {'YYYY-MM-DD': ['HH:MM',...]}}}."""
     with db_cursor() as cur:
         cur.execute(
             'SELECT doctor_id, day_of_week, start_time, end_time '
             'FROM availability ORDER BY doctor_id'
         )
         slot_rows = cur.fetchall()
+        cur.execute(
+            '''SELECT doctor_id, appointment_date, appointment_time
+               FROM appointment
+               WHERE status = 'Scheduled'
+                 AND appointment_date >= CURRENT_DATE'''
+        )
+        booked_rows = cur.fetchall()
 
     out = {}
     for doctor_id, day, start, end in slot_rows:
-        entry = out.setdefault(str(doctor_id), {'slots': []})
+        entry = out.setdefault(str(doctor_id), {'slots': [], 'booked': {}})
         entry['slots'].append({
             'day': day, 'start': str(start)[:5], 'end': str(end)[:5],
         })
+    for doctor_id, appt_date, appt_time in booked_rows:
+        entry = out.setdefault(str(doctor_id), {'slots': [], 'booked': {}})
+        entry['booked'].setdefault(appt_date.isoformat(), []).append(
+            str(appt_time)[:5]
+        )
     return out
 
 

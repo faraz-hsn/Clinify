@@ -3,6 +3,10 @@
 {% block title %}Appointments{% endblock %}
 {% block role_label %}Patient Portal{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/appointments.css' %}">
+{% endblock %}
+
 {% block nav %}
 <span class="nav-label">Menu</span>
 <a href="{% url 'patient_dashboard' %}" class="nav-link"><i data-lucide="layout-grid"></i><span>Dashboard</span></a>
@@ -15,57 +19,98 @@
 {% block content %}
 
 <div id="availability-data" data-json="{{ availability_json }}" hidden></div>
+<div id="doctors-data" data-json="{{ doctors_json }}" hidden></div>
 
 <div class="page-header">
     <h1>Appointments</h1>
-    <p>Book or manage your appointments.</p>
+    <p>Book a new visit or manage your upcoming appointments.</p>
 </div>
 
 <div class="card">
-    <div class="card-title">Book New Appointment</div>
-    <form method="POST">
+    <div class="card-title">
+        <i data-lucide="calendar-plus" class="title-icon"></i>
+        Book New Appointment
+    </div>
+
+    <form method="POST" class="booking-form" id="booking-form" novalidate>
         {% csrf_token %}
+
         <div class="form-group">
-            <label>Doctor</label>
-            <select name="doctor_id" id="doctor-select" required>
-                <option value="">Select a doctor</option>
-                {% for d in doctors %}
-                <option value="{{ d.0 }}">{{ d.1 }} — {{ d.2 }}</option>
-                {% endfor %}
-            </select>
+            <label for="doctor-trigger">Doctor</label>
+            <div class="cp" id="doctor-picker">
+                <input type="hidden" name="doctor_id" id="doctor-input" required>
+                <button type="button" class="cp-btn" id="doctor-trigger" data-cp-trigger>
+                    <span class="cp-btn-text">
+                        <span class="cp-display">Select a doctor</span>
+                        <span class="cp-sub" hidden></span>
+                    </span>
+                    <i data-lucide="chevron-down" class="cp-icon"></i>
+                </button>
+                <div class="cp-pop cp-pop--list" hidden data-cp-pop>
+                    <div class="cp-list" id="doctor-options"></div>
+                </div>
+            </div>
         </div>
 
-        <div id="availability-info" hidden style="margin-bottom:16px;">
-            <div style="font-size:13px; font-weight:600; color:var(--muted); margin-bottom:8px;">
-                UPCOMING AVAILABLE DATES — click to select
+        <div class="booking-grid">
+            <div class="form-group booking-date">
+                <label for="date-trigger">Date</label>
+                <div class="cp" id="date-picker">
+                    <input type="hidden" name="date" id="date-input" required>
+                    <button type="button" class="cp-btn" id="date-trigger" data-cp-trigger disabled>
+                        <span class="cp-btn-text">
+                            <span class="cp-display">Select a doctor first</span>
+                        </span>
+                        <i data-lucide="calendar" class="cp-icon"></i>
+                    </button>
+                    <div class="cp-pop cp-pop--cal" hidden data-cp-pop>
+                        <div class="cal-head">
+                            <button type="button" class="cal-nav" data-cal-prev aria-label="Previous month">
+                                <i data-lucide="chevron-left"></i>
+                            </button>
+                            <div class="cal-label" data-cal-label></div>
+                            <button type="button" class="cal-nav" data-cal-next aria-label="Next month">
+                                <i data-lucide="chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="cal-weekdays">
+                            <span>S</span><span>M</span><span>T</span><span>W</span>
+                            <span>T</span><span>F</span><span>S</span>
+                        </div>
+                        <div class="cal-grid" data-cal-grid></div>
+                        <div class="cal-legend">
+                            <span class="legend-dot legend-avail"></span>Available
+                            <span class="legend-dot legend-off"></span>Unavailable
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div id="availability-list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label>Date</label>
-                <input type="date" name="date" id="date-input" required>
-            </div>
-            <div class="form-group">
+            <div class="form-group booking-time">
                 <label>Time</label>
-                <select name="time" id="time-select" required>
-                    <option value="">Select doctor and date first</option>
-                </select>
+                <input type="hidden" name="time" id="time-input" required>
+                <div class="time-slot-grid" id="time-slot-grid" data-empty-message="Select a doctor and date to see available times.">
+                    <div class="time-slot-empty">Select a doctor and date to see available times.</div>
+                </div>
             </div>
         </div>
 
         <div class="form-group">
-            <label>Reason</label>
-            <input type="text" name="reason" id="reason-input" maxlength="100" placeholder="Brief reason for visit">
+            <label for="reason-input">Reason <span class="form-optional">(optional)</span></label>
+            <input type="text" name="reason" id="reason-input" maxlength="100" placeholder="Brief reason for your visit">
             <div class="char-counter"><span id="reason-count">0</span>/100</div>
         </div>
-        <button type="submit" class="btn btn-primary">Book Appointment</button>
+
+        <button type="submit" class="btn btn-primary" id="booking-submit">
+            <i data-lucide="check"></i> Book Appointment
+        </button>
     </form>
 </div>
 
 <div class="card">
-    <div class="card-title">Your Appointments</div>
+    <div class="card-title">
+        <i data-lucide="list" class="title-icon"></i>
+        Your Appointments
+    </div>
     {% if appointments %}
     <div class="table-wrap">
         <table>
@@ -86,12 +131,15 @@
                             <button type="button" class="btn btn-outline btn-sm"
                                     data-action="reschedule"
                                     data-appointment-id="{{ a.0 }}"
-                                    data-doctor-id="{{ a.6 }}">Reschedule</button>
+                                    data-doctor-id="{{ a.6 }}"
+                                    data-doctor-name="Dr. {{ a.5 }}"
+                                    data-current-date="{{ a.1|date:'Y-m-d' }}"
+                                    data-current-time="{{ a.2|time:'H:i' }}">Reschedule</button>
                             <button type="button" class="btn btn-danger btn-sm"
                                     data-action="cancel-appt"
                                     data-appointment-id="{{ a.0 }}"
-                                    data-date="{{ a.1|date:"M d, Y" }}"
-                                    data-time="{{ a.2|time:"g:i A" }}">Cancel</button>
+                                    data-date="{{ a.1|date:'M d, Y' }}"
+                                    data-time="{{ a.2|time:'g:i A' }}">Cancel</button>
                         </div>
                         {% else %}
                         —
@@ -103,34 +151,67 @@
         </table>
     </div>
     {% else %}
-    <div class="empty">No appointments found.</div>
+    <div class="empty">No appointments yet. Book one above to get started.</div>
     {% endif %}
 </div>
 
 <div class="modal-backdrop" id="reschedule-modal">
-    <div class="modal">
+    <div class="modal modal-wide">
         <h3>Reschedule Appointment</h3>
-        <p style="font-size:13px;color:var(--muted);margin:0 0 16px;">
-            Pick a new date — only times the doctor is available will appear.
-        </p>
-        <form method="POST">
+        <div class="reschedule-meta" id="reschedule-meta"></div>
+        <form method="POST" id="reschedule-form" novalidate>
             {% csrf_token %}
             <input type="hidden" name="action" value="reschedule">
             <input type="hidden" name="appointment_id" id="reschedule-id">
             <input type="hidden" id="reschedule-doctor-id">
-            <div class="form-group">
-                <label>New Date</label>
-                <input type="date" name="new_date" id="reschedule-date" required>
+            <input type="hidden" id="reschedule-current-date">
+            <input type="hidden" id="reschedule-current-time">
+
+            <div class="booking-grid">
+                <div class="form-group booking-date">
+                    <label for="reschedule-date-trigger">New date</label>
+                    <div class="cp" id="reschedule-date-picker">
+                        <input type="hidden" name="new_date" id="reschedule-date" required>
+                        <button type="button" class="cp-btn" id="reschedule-date-trigger" data-cp-trigger>
+                            <span class="cp-btn-text">
+                                <span class="cp-display">Select an available date</span>
+                            </span>
+                            <i data-lucide="calendar" class="cp-icon"></i>
+                        </button>
+                        <div class="cp-pop cp-pop--cal" hidden data-cp-pop>
+                            <div class="cal-head">
+                                <button type="button" class="cal-nav" data-cal-prev aria-label="Previous month">
+                                    <i data-lucide="chevron-left"></i>
+                                </button>
+                                <div class="cal-label" data-cal-label></div>
+                                <button type="button" class="cal-nav" data-cal-next aria-label="Next month">
+                                    <i data-lucide="chevron-right"></i>
+                                </button>
+                            </div>
+                            <div class="cal-weekdays">
+                                <span>S</span><span>M</span><span>T</span><span>W</span>
+                                <span>T</span><span>F</span><span>S</span>
+                            </div>
+                            <div class="cal-grid" data-cal-grid></div>
+                            <div class="cal-legend">
+                                <span class="legend-dot legend-avail"></span>Available
+                                <span class="legend-dot legend-off"></span>Unavailable
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group booking-time">
+                    <label>New time</label>
+                    <input type="hidden" name="new_time" id="reschedule-time-input" required>
+                    <div class="time-slot-grid" id="reschedule-slot-grid" data-empty-message="Select a date to see available times.">
+                        <div class="time-slot-empty">Select a date to see available times.</div>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label>New Time</label>
-                <select name="new_time" id="reschedule-time" required>
-                    <option value="">Select a date first</option>
-                </select>
-            </div>
+
             <div class="modal-actions">
                 <button type="button" class="btn btn-outline" data-close-modal="reschedule-modal">Back</button>
-                <button type="submit" class="btn btn-primary">Confirm</button>
+                <button type="submit" class="btn btn-primary" id="reschedule-submit">Confirm</button>
             </div>
         </form>
     </div>
@@ -139,7 +220,7 @@
 <div class="modal-backdrop" id="cancel-modal">
     <div class="modal">
         <h3>Cancel Appointment?</h3>
-        <p id="cancel-body" style="color:var(--muted); margin:0;"></p>
+        <p id="cancel-body" class="modal-subtle"></p>
         <form method="POST">
             {% csrf_token %}
             <input type="hidden" name="action" value="cancel">
