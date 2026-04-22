@@ -18,6 +18,7 @@ CREATE TABLE "USER" (
     Email       VARCHAR(100) NOT NULL UNIQUE,
     Phone       VARCHAR(20),
     Password_Hash VARCHAR(255) NOT NULL,
+    Is_Active   BOOLEAN      NOT NULL DEFAULT TRUE,
     Role        VARCHAR(10)  NOT NULL,
     CONSTRAINT chk_role CHECK (Role IN ('patient', 'doctor', 'admin'))
 );

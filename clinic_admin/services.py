@@ -43,16 +43,57 @@ def update_appointment_status(appointment_id, status):
 def update_user(user_id, first_name, last_name, phone, new_role):
     """Update a user's name and phone. Role changes are not permitted here."""
     current_role = selectors.get_user_role(user_id)
-    if current_role and current_role != new_role:
-        raise ValueError(
-            f'Role change not allowed. User is currently a {current_role}. '
-            'Delete and re-create the account to change roles.'
-        )
+    if current_role not in ('doctor', 'admin'):
+        raise ValueError('Only staff accounts can be managed here.')
+    if current_role and new_role and current_role != new_role:
+        raise ValueError('Role changes are not supported.')
+    first_name = normalize_person_name(first_name)
+    last_name = normalize_person_name(last_name)
     phone = normalize_phone(phone)
     with db_cursor(commit=True) as cur:
         cur.execute(
             'UPDATE "USER" SET first_name=%s, last_name=%s, phone=%s WHERE user_id=%s',
             (first_name, last_name, phone, user_id),
+        )
+
+
+def set_doctor_active(doctor_id, is_active):
+    doctor_id = (doctor_id or '').strip()
+    if not doctor_id:
+        raise ValueError('Missing doctor account.')
+    try:
+        doctor_id_int = int(doctor_id)
+    except ValueError:
+        raise ValueError('Invalid doctor account.') from None
+
+    with db_cursor(commit=True) as cur:
+        cur.execute(
+            'SELECT role FROM "USER" WHERE user_id = %s',
+            (doctor_id_int,),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise ValueError('Doctor account not found.')
+        if row[0] != 'doctor':
+            raise ValueError('Only doctor accounts can be activated/deactivated.')
+
+        if not is_active:
+            cur.execute(
+                '''SELECT 1 FROM appointment
+                   WHERE doctor_id = %s
+                     AND status = 'Scheduled'
+                     AND appointment_date >= CURRENT_DATE
+                   LIMIT 1''',
+                (doctor_id_int,),
+            )
+            if cur.fetchone():
+                raise ValueError(
+                    'This doctor has scheduled appointments and cannot be deactivated.'
+                )
+
+        cur.execute(
+            'UPDATE "USER" SET is_active = %s WHERE user_id = %s',
+            (bool(is_active), doctor_id_int),
         )
 
 

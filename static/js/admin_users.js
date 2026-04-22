@@ -1,6 +1,6 @@
 (function () {
     var editModal = document.getElementById('edit-modal');
-    var deleteModal = document.getElementById('delete-modal');
+    var toggleModal = document.getElementById('toggle-modal');
     if (!editModal) return;
 
     var editFields = {
@@ -8,11 +8,15 @@
         first: document.getElementById('edit-first'),
         last: document.getElementById('edit-last'),
         phone: document.getElementById('edit-phone'),
-        role: document.getElementById('edit-role'),
     };
 
-    var deleteIdInput = document.getElementById('delete-user-id');
-    var deleteBody = document.getElementById('delete-body');
+    var toggleFields = {
+        id: document.getElementById('toggle-user-id'),
+        active: document.getElementById('toggle-is-active'),
+        title: document.getElementById('toggle-title'),
+        body: document.getElementById('toggle-body'),
+        submit: document.getElementById('toggle-submit'),
+    };
 
     document.addEventListener('click', function (e) {
         var editBtn = e.target.closest('[data-action="edit-user"]');
@@ -22,17 +26,23 @@
             editFields.last.value = editBtn.dataset.lastName;
             var phone = editBtn.dataset.phone;
             editFields.phone.value = phone === 'None' ? '' : phone;
-            editFields.role.value = editBtn.dataset.role;
             editModal.classList.add('open');
             return;
         }
 
-        var deleteBtn = e.target.closest('[data-action="delete-user"]');
-        if (deleteBtn) {
-            deleteIdInput.value = deleteBtn.dataset.userId;
-            deleteBody.textContent =
-                'Permanently delete ' + deleteBtn.dataset.name + '? This cannot be undone.';
-            deleteModal.classList.add('open');
+        var toggleBtn = e.target.closest('[data-action="toggle-doctor"]');
+        if (toggleBtn) {
+            var wasActive = toggleBtn.dataset.isActive === '1';
+            var nextActive = wasActive ? '0' : '1';
+            toggleFields.id.value = toggleBtn.dataset.userId;
+            toggleFields.active.value = nextActive;
+            toggleFields.title.textContent = wasActive ? 'Deactivate Doctor?' : 'Activate Doctor?';
+            toggleFields.body.textContent =
+                (wasActive
+                    ? 'Deactivate ' + toggleBtn.dataset.name + '? They will not be able to access the doctor portal.'
+                    : 'Activate ' + toggleBtn.dataset.name + '? They will be able to access the doctor portal.');
+            toggleFields.submit.textContent = wasActive ? 'Deactivate' : 'Activate';
+            toggleModal.classList.add('open');
             return;
         }
 
@@ -42,7 +52,7 @@
         }
     });
 
-    [editModal, deleteModal].forEach(function (modal) {
+    [editModal, toggleModal].forEach(function (modal) {
         modal.addEventListener('click', function (e) {
             if (e.target === modal) modal.classList.remove('open');
         });

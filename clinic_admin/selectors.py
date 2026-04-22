@@ -50,8 +50,10 @@ def list_all_appointments():
 def list_users():
     with db_cursor() as cur:
         cur.execute(
-            'SELECT user_id, first_name, last_name, email, phone, role '
-            'FROM "USER" ORDER BY role, last_name'
+            'SELECT user_id, first_name, last_name, email, phone, role, is_active '
+            'FROM "USER" '
+            "WHERE role IN ('doctor', 'admin') "
+            'ORDER BY role, last_name'
         )
         return cur.fetchall()
 

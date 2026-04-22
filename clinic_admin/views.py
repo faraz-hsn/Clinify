@@ -64,12 +64,16 @@ def admin_users(request):
                     request.POST.get('first_name'),
                     request.POST.get('last_name'),
                     request.POST.get('phone'),
-                    request.POST.get('role'),
+                    None,
                 )
-                messages.success(request, 'User updated.')
-            elif action == 'delete':
-                services.delete_user(user_id)
-                messages.success(request, 'User deleted.')
+                messages.success(request, 'Staff member updated.')
+            elif action == 'toggle_active':
+                is_active = request.POST.get('is_active') == '1'
+                services.set_doctor_active(user_id, is_active)
+                messages.success(
+                    request,
+                    'Doctor account activated.' if is_active else 'Doctor account deactivated.',
+                )
         except ValueError as e:
             messages.error(request, str(e))
         except Exception as e:

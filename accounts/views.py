@@ -14,12 +14,22 @@ def login_view(request):
 
         user = authenticate(request, email=email, password=password)
         if user is not None:
-            login(request, user)
             try:
-                identity = selectors.get_user_identity_by_email(email)
+                identity = selectors.get_user_login_state_by_email(email)
                 if identity:
-                    request.session['user_id'] = identity[0]
-                    request.session['user_role'] = identity[1]
+                    user_id, role, is_active = identity
+                    if role == 'doctor' and not is_active:
+                        messages.error(
+                            request,
+                            'Your doctor account is inactive. Please contact a clinic admin.',
+                        )
+                        return render(request, 'accounts/login.html', {'form': form})
+
+                    login(request, user)
+                    request.session['user_id'] = user_id
+                    request.session['user_role'] = role
+                else:
+                    login(request, user)
             except Exception as e:
                 messages.error(request, f'Database error: {e}')
             return redirect('index')

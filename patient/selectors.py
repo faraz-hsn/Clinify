@@ -70,7 +70,9 @@ def list_doctors():
     with db_cursor() as cur:
         cur.execute(
             '''SELECT d.doctor_id, u.first_name || ' ' || u.last_name, d.specialty
-               FROM doctor d JOIN "USER" u ON d.doctor_id = u.user_id'''
+               FROM doctor d
+               JOIN "USER" u ON d.doctor_id = u.user_id
+               WHERE u.is_active = TRUE'''
         )
         return cur.fetchall()
 

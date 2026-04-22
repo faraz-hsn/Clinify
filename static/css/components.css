@@ -234,6 +234,8 @@ tbody tr:hover { background: var(--bg); }
 .badge-patient    { background: #e8f4f9; color: var(--primary); }
 .badge-doctor     { background: #e6f7f2; color: var(--accent); }
 .badge-admin      { background: #f3eeff; color: #7c5cbf; }
+.badge-active     { background: #e8f4f9; color: var(--primary); }
+.badge-inactive   { background: #fdecea; color: var(--danger); }
 
 /* ── ALERTS ─────────────────────────────────────── */
 .messages { margin-bottom: 20px; }
