@@ -34,6 +34,58 @@ def _time_str(t):
     return s[:5]
 
 
+_DAY_ORDER = {
+    'Monday': 1,
+    'Tuesday': 2,
+    'Wednesday': 3,
+    'Thursday': 4,
+    'Friday': 5,
+    'Saturday': 6,
+    'Sunday': 7,
+}
+
+
+def _join_list(items):
+    items = [i for i in items if i]
+    if not items:
+        return ''
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f'{items[0]} and {items[1]}'
+    return f"{', '.join(items[:-1])}, and {items[-1]}"
+
+
+def _sorted_days(days):
+    return sorted(days, key=lambda d: _DAY_ORDER.get(d, 99))
+
+
+def _compress_days(days):
+    days = [d for d in _sorted_days(set(days or [])) if d in _DAY_ORDER]
+    if not days:
+        return ''
+    if len(days) == 7:
+        return 'every day'
+
+    groups = []
+    current = [days[0]]
+    for day in days[1:]:
+        if _DAY_ORDER[day] == _DAY_ORDER[current[-1]] + 1:
+            current.append(day)
+        else:
+            groups.append(current)
+            current = [day]
+    groups.append(current)
+
+    labels = []
+    for g in groups:
+        if len(g) == 1:
+            labels.append(g[0])
+        else:
+            labels.append(f'{g[0]}–{g[-1]}')
+    return _join_list(labels)
+
+
 def add_availability_slots(doctor_id, days, start_time, end_time):
     if not days:
         raise ValueError('Please select at least one day.')
@@ -54,24 +106,47 @@ def add_availability_slots(doctor_id, days, start_time, end_time):
             (doctor_id, list(days)),
         )
         existing = cur.fetchall()
+        existing_by_day = {}
         for day, ex_start, ex_end in existing:
-            ex_s, ex_e = _time_str(ex_start), _time_str(ex_end)
-            if start_time == ex_s and end_time == ex_e:
-                raise ValueError(
-                    f'You already have this exact slot on {day} ({_fmt_time(ex_s)} – {_fmt_time(ex_e)}).'
-                )
-            if start_time == ex_s:
-                raise ValueError(
-                    f'You already have a slot starting at {_fmt_time(ex_s)} on {day}.'
-                )
-            if end_time == ex_e:
-                raise ValueError(
-                    f'You already have a slot ending at {_fmt_time(ex_e)} on {day}.'
-                )
-            if start_time < ex_e and end_time > ex_s:
-                raise ValueError(
-                    f'This overlaps your existing {_fmt_time(ex_s)} – {_fmt_time(ex_e)} slot on {day}.'
-                )
+            existing_by_day.setdefault(day, []).append((_time_str(ex_start), _time_str(ex_end)))
+
+        # Collect conflicts across all selected days so the doctor sees everything at once.
+        conflict_by_day = {}  # day -> (kind, ex_s, ex_e)
+        for day in _sorted_days(set(days)):
+            slots = existing_by_day.get(day, [])
+            conflict = None
+
+            for ex_s, ex_e in slots:
+                if start_time == ex_s and end_time == ex_e:
+                    conflict = ('exact', ex_s, ex_e)
+                    break
+            if conflict is None:
+                for ex_s, ex_e in slots:
+                    if start_time == ex_s:
+                        conflict = ('start', ex_s, None)
+                        break
+            if conflict is None:
+                for ex_s, ex_e in slots:
+                    if end_time == ex_e:
+                        conflict = ('end', None, ex_e)
+                        break
+            if conflict is None:
+                for ex_s, ex_e in slots:
+                    if start_time < ex_e and end_time > ex_s:
+                        conflict = ('overlap', ex_s, ex_e)
+                        break
+
+            if conflict is not None:
+                conflict_by_day[day] = conflict
+
+        if conflict_by_day:
+            days_txt = _compress_days(list(conflict_by_day.keys()))
+            if days_txt == 'every day':
+                msg = 'That time overlaps your existing hours every day.'
+            else:
+                msg = f'That time overlaps your existing hours on {days_txt}.'
+            raise ValueError(f'{msg} Choose a different time or deselect those days.')
+
         for day in days:
             cur.execute(
                 'INSERT INTO availability (doctor_id, day_of_week, start_time, end_time) '
