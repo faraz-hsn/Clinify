@@ -9,7 +9,7 @@ CPSC 471 - Group 27
 1. Create your local environment file
 
 ```bash
-cp .env.template .env
+cp .env.example .env
 ```
 
 Update `.env` with your local values:
